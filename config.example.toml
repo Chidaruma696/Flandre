@@ -1,0 +1,26 @@
+# ~/.config/flandre/config.toml  (every key is optional)
+
+# Material scheme: tonal-spot | vibrant | expressive | fruit-salad | rainbow | neutral | monochrome | fidelity | content
+variant = "fruit-salad"
+
+# How far the wallpaper hue is pushed into neutral surfaces: soft | normal | strong
+tint = "strong"
+
+# Shell command run after every apply. FLANDRE_PRIMARY and FLANDRE_MODE are in its environment.
+extra_command = ""
+
+# Desktop notification after each regeneration
+notify = true
+
+[targets]
+gtk = true        # ~/.config/gtk-4.0/gtk.css and gtk-3.0/gtk.css (libadwaita + adw-gtk3)
+shell = true      # ~/.local/share/themes/Flandre (via User Themes)
+icons = true      # ~/.local/share/icons/Flandre-<hex>
+ptyxis = true
+console = true
+blackbox = true
+terminals = true  # OSC sequences to open ptys + ~/.cache/flandre/sequences
+
+[icons]
+base = "Tela"              # family to recolour; needs Tela, Tela-dark and Tela-light installed
+source_accent = "#5294e2"  # the colour that family paints its folders with

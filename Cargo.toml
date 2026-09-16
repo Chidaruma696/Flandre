@@ -1,0 +1,14 @@
+[package]
+name = "flandre"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+anyhow = "1.0.104"
+clap = { version = "4.6.7", features = ["derive"] }
+gio = "0.22.9"
+glib = "0.22.9"
+image = { version = "0.25.10", default-features = false, features = ["jpeg", "png", "webp"] }
+material-colors = { version = "0.4.2", features = ["image"] }
+serde = { version = "1.0.229", features = ["derive"] }
+toml = "1.1.6"
