@@ -29,7 +29,12 @@ fn find_theme(name: &str) -> Option<PathBuf> {
 /// Collects SVG files and symlinked directories (Tela uses `16@2x -> 16`, and the dark/light
 /// variants point `scalable` at the base family). Symlinks are not followed: the base family is
 /// walked on its own, and in-theme links are recreated in the output.
-fn walk(dir: &Path, out: &mut Vec<PathBuf>, links: &mut Vec<(PathBuf, PathBuf)>) {
+fn walk(
+    dir: &Path,
+    out: &mut Vec<PathBuf>,
+    links: &mut Vec<(PathBuf, PathBuf)>,
+    file_links: &mut Vec<(PathBuf, PathBuf)>,
+) {
     let Ok(rd) = std::fs::read_dir(dir) else { return };
     for e in rd.flatten() {
         let p = e.path();
@@ -38,17 +43,34 @@ fn walk(dir: &Path, out: &mut Vec<PathBuf>, links: &mut Vec<(PathBuf, PathBuf)>)
             Err(_) => continue,
         };
         if ft.is_symlink() {
-            if p.is_dir()
-                && let Ok(target) = std::fs::read_link(&p)
-            {
-                links.push((p, target));
+            if let Ok(target) = std::fs::read_link(&p) {
+                if p.is_dir() {
+                    links.push((p, target));
+                } else if p.extension().is_some_and(|e| e == "svg") {
+                    // Tela names most icons through symlinks (folder.svg -> default-folder.svg).
+                    file_links.push((p, target));
+                }
             }
         } else if ft.is_dir() {
-            walk(&p, out, links);
+            walk(&p, out, links, file_links);
         } else if p.extension().is_some_and(|e| e == "svg") {
             out.push(p);
         }
     }
+}
+
+fn normalize(p: &Path) -> PathBuf {
+    let mut out = PathBuf::new();
+    for c in p.components() {
+        match c {
+            std::path::Component::ParentDir => {
+                out.pop();
+            }
+            std::path::Component::CurDir => {}
+            other => out.push(other),
+        }
+    }
+    out
 }
 
 pub struct IconResult {
@@ -88,12 +110,17 @@ pub fn apply(p: &Palette, cfg: &Icons) -> Result<IconResult> {
         roots.push(v);
     }
     roots.push(&base);
+    // Gather every SVG (regular files and symlinked names) from the variant and the base family,
+    // deduplicated by path inside the theme (variant wins).
     let mut seen = std::collections::HashSet::new();
     let mut links: Vec<(PathBuf, PathBuf)> = Vec::new();
+    // (source path, path inside the theme, link target if it is a symlink)
+    let mut entries: Vec<(PathBuf, PathBuf, Option<PathBuf>)> = Vec::new();
     for root in &roots {
         let mut files = Vec::new();
         let mut found_links = Vec::new();
-        walk(root, &mut files, &mut found_links);
+        let mut found_file_links = Vec::new();
+        walk(root, &mut files, &mut found_links, &mut found_file_links);
         for (link, target) in found_links {
             let rel = link.strip_prefix(root).unwrap_or(&link).to_path_buf();
             // Only links that stay inside the theme (e.g. 16@2x -> 16); cross-theme ones are
@@ -108,31 +135,93 @@ pub fn apply(p: &Palette, cfg: &Icons) -> Result<IconResult> {
         }
         for f in files {
             let rel = f.strip_prefix(root).unwrap_or(&f).to_path_buf();
-            if !seen.insert(rel.clone()) {
-                continue;
+            if seen.insert(rel.clone()) {
+                entries.push((f, rel, None));
             }
-            let Ok(text) = std::fs::read_to_string(&f) else {
-                continue;
-            };
-            if !(text.contains(&source_accent) || text.contains(&source_accent_upper)) {
-                continue;
+        }
+        for (link, target) in found_file_links {
+            let rel = link.strip_prefix(root).unwrap_or(&link).to_path_buf();
+            if seen.insert(rel.clone()) {
+                entries.push((link, rel, Some(target)));
             }
-            let mut new = text
-                .replace(&source_accent, &accent_hex)
-                .replace(&source_accent_upper, &accent_hex);
-            // Tela's KDE colour-scheme hooks: paint the highlight class too.
-            if new.contains("ColorScheme-Highlight") {
-                new = new.replace(
-                    "ColorScheme-Highlight\" style=\"color:currentColor",
-                    &format!("ColorScheme-Highlight\" style=\"color:{accent_hex}"),
-                );
-            }
-            let out = tmp.join(&rel);
-            if let Some(parent) = out.parent() {
-                std::fs::create_dir_all(parent)?;
-            }
-            std::fs::write(&out, new)?;
+        }
+    }
+
+    let has_accent = |text: &str| text.contains(&source_accent) || text.contains(&source_accent_upper);
+    let recolor = |text: &str| {
+        let mut new = text
+            .replace(&source_accent, &accent_hex)
+            .replace(&source_accent_upper, &accent_hex);
+        // Tela's KDE colour-scheme hooks: paint the highlight class too.
+        if new.contains("ColorScheme-Highlight") {
+            new = new.replace(
+                "ColorScheme-Highlight\" style=\"color:currentColor",
+                &format!("ColorScheme-Highlight\" style=\"color:{accent_hex}"),
+            );
+        }
+        new
+    };
+    // Icon name (category/file) -> whether some size of it carries the accent. GTK prefers the
+    // theme's own directories over inherited ones even at other sizes, so once one size of a name
+    // is in the theme every size must be, or a 24px icon ends up scaled to 64px.
+    let key = |rel: &Path| -> Option<(String, String)> {
+        let name = rel.file_name()?.to_string_lossy().into_owned();
+        let category = rel.parent()?.file_name()?.to_string_lossy().into_owned();
+        Some((category, name))
+    };
+    let mut accented_names = std::collections::HashSet::new();
+    let mut contents: Vec<Option<String>> = Vec::with_capacity(entries.len());
+    for (src, rel, _) in &entries {
+        let text = std::fs::read_to_string(src).ok();
+        if text.as_deref().is_some_and(has_accent)
+            && let Some(k) = key(rel)
+        {
+            accented_names.insert(k);
+        }
+        contents.push(text);
+    }
+    let mut copied = std::collections::HashSet::new();
+    let mut pending_links: Vec<(PathBuf, PathBuf, Option<String>)> = Vec::new();
+    for ((src, rel, target), text) in entries.iter().zip(contents.into_iter()) {
+        let Some(text) = text else { continue };
+        let wanted = key(rel).is_some_and(|k| accented_names.contains(&k));
+        if !wanted {
+            continue;
+        }
+        if let Some(target) = target {
+            pending_links.push((rel.clone(), target.clone(), Some(text)));
+            continue;
+        }
+        let out = tmp.join(rel);
+        if let Some(parent) = out.parent() {
+            std::fs::create_dir_all(parent)?;
+        }
+        if has_accent(&text) {
+            std::fs::write(&out, recolor(&text))?;
             recolored += 1;
+        } else {
+            std::fs::copy(src, &out)?;
+        }
+        copied.insert(rel.clone());
+    }
+    // Symlinked names: link again when the target is in the theme, otherwise materialise the
+    // resolved file (recoloured if it carries the accent) under the link's own name.
+    for (rel, target, text) in pending_links {
+        let target_rel = normalize(&rel.parent().unwrap_or(Path::new("")).join(&target));
+        let out = tmp.join(&rel);
+        if let Some(parent) = out.parent() {
+            std::fs::create_dir_all(parent)?;
+        }
+        if target.is_relative() && copied.contains(&target_rel) {
+            let _ = std::os::unix::fs::symlink(&target, &out);
+            continue;
+        }
+        let Some(text) = text else { continue };
+        if has_accent(&text) {
+            std::fs::write(&out, recolor(&text))?;
+            recolored += 1;
+        } else {
+            std::fs::write(&out, text)?;
         }
     }
 
