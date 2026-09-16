@@ -96,12 +96,17 @@ pub fn recolor_css(css: &str, p: &Palette) -> String {
 }
 
 pub fn extra_css(p: &Palette, shell: &Shell) -> String {
+    let alpha = shell.panel_opacity.clamp(0.0, 1.0);
+    let bar = |c: Option<Argb>| {
+        let (r, g, b) = c.map(|c| (c.red, c.green, c.blue)).unwrap_or((0, 0, 0));
+        format!(
+            "#panel {{ background-color: rgba({r}, {g}, {b}, {alpha:.2}); }}\n#panel:overview {{ background-color: transparent; }}\n"
+        )
+    };
     let panel = match shell.panel {
-        PanelStyle::Black => String::new(),
-        PanelStyle::Colored => format!(
-            "#panel {{ background-color: {}; }}\n#panel:overview {{ background-color: transparent; }}\n",
-            hex(p.surface_container)
-        ),
+        PanelStyle::Black if alpha >= 1.0 => String::new(),
+        PanelStyle::Black => bar(None),
+        PanelStyle::Colored => bar(Some(p.surface_container)),
         PanelStyle::Transparent => "#panel { background-color: transparent; }\n".to_string(),
     };
     panel

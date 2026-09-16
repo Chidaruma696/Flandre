@@ -32,3 +32,4 @@ chroma = 0.0                  # minimum colourfulness; 0 keeps the scheme's own
 
 [shell]
 panel = "black"               # black | colored | transparent
+panel_opacity = 1.0           # 0.0 see-through .. 1.0 solid (black and colored)

@@ -115,12 +115,15 @@ pub enum PanelStyle {
 #[serde(default)]
 pub struct Shell {
     pub panel: PanelStyle,
+    /// Opacity of the top bar colour (black or coloured), 0.0 = see-through, 1.0 = solid.
+    pub panel_opacity: f64,
 }
 
 impl Default for Shell {
     fn default() -> Self {
         Self {
             panel: PanelStyle::Black,
+            panel_opacity: 1.0,
         }
     }
 }

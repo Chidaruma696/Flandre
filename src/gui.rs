@@ -68,11 +68,13 @@ fn draw_desktop(cr: &cairo::Context, w: f64, h: f64, st: &State) {
     cr.rectangle(0.0, 0.0, w, h);
     let _ = cr.fill();
     // top panel
+    let a = st.cfg.shell.panel_opacity.clamp(0.0, 1.0);
     match st.cfg.shell.panel {
-        PanelStyle::Black => {
-            cr.set_source_rgb(0.0, 0.0, 0.0);
+        PanelStyle::Black => cr.set_source_rgba(0.0, 0.0, 0.0, a),
+        PanelStyle::Colored => {
+            let c = p.surface_container;
+            cr.set_source_rgba(c.red as f64 / 255.0, c.green as f64 / 255.0, c.blue as f64 / 255.0, a);
         }
-        PanelStyle::Colored => rgb(cr, p.surface_container),
         PanelStyle::Transparent => cr.set_source_rgba(0.0, 0.0, 0.0, 0.0),
     }
     cr.rectangle(0.0, 0.0, w, 18.0);
@@ -544,7 +546,17 @@ fn build_ui(app: &adw::Application) {
         ],
         cur_panel,
     );
+    let (opacity_row, opacity_scale) = scale_row(
+        t("Top bar opacity", "Opacidad de la barra"),
+        t("0 = see-through, 1 = solid", "0 = se ve el fondo, 1 = sólida"),
+        0.0,
+        1.0,
+        0.05,
+        st.borrow().cfg.shell.panel_opacity,
+    );
+    opacity_row.set_sensitive(st.borrow().cfg.shell.panel != PanelStyle::Transparent);
     g_shell.add(&panel_row);
+    g_shell.add(&opacity_row);
     page.add(&g_shell);
 
     let g_targets = adw::PreferencesGroup::builder()
@@ -639,8 +651,14 @@ fn build_ui(app: &adw::Application) {
     on_change!(tone_scale, connect_value_changed, |s, w| s.cfg.icons.tone = w.value());
     on_change!(chroma_scale, connect_value_changed, |s, w| s.cfg.icons.chroma =
         w.value());
+    {
+        let opacity_row = opacity_row.clone();
+        panel_row.connect_selected_notify(move |w| opacity_row.set_sensitive(w.selected() != 2));
+    }
     on_change!(panel_row, connect_selected_notify, |s, w| s.cfg.shell.panel =
         panels[w.selected() as usize]);
+    on_change!(opacity_scale, connect_value_changed, |s, w| s.cfg.shell.panel_opacity =
+        w.value());
     on_change!(sw_gtk, connect_active_notify, |s, w| s.cfg.targets.gtk = w.is_active());
     on_change!(sw_shell, connect_active_notify, |s, w| s.cfg.targets.shell =
         w.is_active());
