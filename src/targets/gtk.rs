@@ -202,10 +202,9 @@ pub fn vars_block(p: &Palette, indent: &str) -> String {
     let mut s = String::with_capacity(5000);
     let _ = writeln!(s, "{indent}:root {{");
     for (name, value) in named_colors(p) {
-        let value = if value.starts_with('@') {
-            format!("var(--{})", value[1..].replace('_', "-"))
-        } else {
-            value
+        let value = match value.strip_prefix('@') {
+            Some(name) => format!("var(--{})", name.replace('_', "-")),
+            None => value,
         };
         let _ = writeln!(s, "{indent}  --{}: {value};", name.replace('_', "-"));
     }
