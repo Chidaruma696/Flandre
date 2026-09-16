@@ -17,7 +17,8 @@ here, but the ideas are theirs.
 | [Ptyxis](https://gitlab.gnome.org/chergert/ptyxis) | Christian Hergert | GPL-3.0 | Palette file format. |
 | [GNOME Console](https://gitlab.gnome.org/GNOME/console) | GNOME | GPL-3.0 | Livery GVariant format. |
 | [Black Box](https://gitlab.gnome.org/raggesilver/blackbox) | Paulo Queiroz | GPL-3.0 | Scheme JSON format. |
-| [gtk-rs](https://gtk-rs.org/) (`gio`, `glib`) | gtk-rs team | MIT | GSettings, GResource and the main loop. |
+| [gtk-rs](https://gtk-rs.org/) (`gio`, `glib`, `gtk4`, `libadwaita`) | gtk-rs team | MIT | GSettings, GResource, the main loop and the settings window. |
+| [Papirus icon theme](https://github.com/PapirusDevelopmentTeam/papirus-icon-theme) | Papirus Development Team | GPL-3.0 | The other icon family Flandre can recolour (folder back/front colours). |
 
 Touhou Project and its characters belong to Team Shanghai Alice (ZUN); this is an unofficial fan
 work made under their guidelines for derivative works, with no affiliation or endorsement.

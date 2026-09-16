@@ -53,11 +53,14 @@ fn stamp(source: Argb, dark: bool, cfg: &Config, wallpaper: Option<&Path>) -> St
         .map(|d| d.as_secs())
         .unwrap_or(0);
     format!(
-        "{} {} {:?} {:?} {} {} {:?} {}",
+        "{} {} {:?} {:?} {} {:?} {:?} {} {} {:?} {}",
         hex(source),
         dark,
         cfg.variant,
         cfg.tint,
+        cfg.darken,
+        cfg.icons,
+        cfg.shell,
         wallpaper.map(|w| w.display().to_string()).unwrap_or_default(),
         mtime,
         cfg.targets_key(),
@@ -121,8 +124,8 @@ pub fn run(cfg: &Config, opts: &Options) -> Result<Report> {
     ));
 
     let theme = colors::build_theme(source, cfg.variant);
-    let pal_dark = Palette::build(&theme, true, cfg.tint);
-    let pal_light = Palette::build(&theme, false, cfg.tint);
+    let pal_dark = Palette::build(&theme, true, cfg.tint, cfg.darken);
+    let pal_light = Palette::build(&theme, false, cfg.tint, cfg.darken);
     let p = if dark { &pal_dark } else { &pal_light };
     lines.push(format!(
         "primary {}  surface {}  headerbar {}  terminal {} on {}",
@@ -140,7 +143,7 @@ pub fn run(cfg: &Config, opts: &Options) -> Result<Report> {
         }
     }
     if cfg.targets.shell {
-        match targets::shell::apply(p) {
+        match targets::shell::apply(p, &cfg.shell) {
             Ok(f) => lines.push(format!("shell: {}", f.display())),
             Err(e) => warnings.push(format!("shell: {e:#}")),
         }

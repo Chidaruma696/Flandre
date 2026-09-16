@@ -22,7 +22,7 @@ GLib, y llega más lejos:
 |---|---|
 | **libadwaita (GTK 4)** y **adw-gtk3 (GTK 3)** | Todos los colores con nombre que expone libadwaita (acento, superficies, headerbar, sidebars, cards, diálogos, popovers, las filas `blue_1`…`dark_5`) en `~/.config/gtk-{3,4}.0/gtk.css`, más unas reglas que empujan el tinte a selecciones, pestañas, switches y OSD. |
 | **GNOME Shell** | Se lee la hoja de estilo del gnome-shell *instalado* desde su GResource y se reescribe cada color (los grises toman el matiz del fondo, los saturados se armonizan, las palabras clave del acento pasan a ser el primario). Se carga con User Themes, así que nunca se queda atrás de una actualización de la Shell. |
-| **Iconos** | Un tema `Flandre-<hex>` encima de Tela: se recolorea cada SVG que lleve el acento de Tela y el resto se hereda. Unos 13 MB, menos de un segundo. |
+| **Iconos** | Un tema `Flandre-<familia>-<hex>` encima de Tela o Papirus: se recolorea cada SVG que lleve el color de carpeta de la familia (todos los tamaños, nombres por symlink incluidos) con el color del esquema que elijas (primary container por defecto, como Material You) y el resto se hereda. Menos de un segundo. |
 | **Ptyxis** | Una `.palette` nativa (claro + oscuro, con titlebar) seleccionada en todos los perfiles. Paquete del sistema y Flatpak. |
 | **GNOME Console** | Una *livery* propia escrita en `org.gnome.Console custom-liveries` y seleccionada (Console 49+). |
 | **Black Box** | Esquemas JSON `Flandre Dark` / `Flandre Light` más `theme-dark` / `theme-light` / `pretty`. Paquete del sistema y Flatpak. |
@@ -32,7 +32,16 @@ GLib, y llega más lejos:
 Tres niveles de tinte (`soft`, `normal`, `strong`) controlan cuánto entra el matiz del fondo en
 los grises y cuánto acento baña headerbars, sidebars y popovers. `strong` es el predeterminado y
 está pensado para ser agresivo; mantiene oscuras las superficies oscuras porque tiñe el matiz a
-tono constante.
+tono constante, y el control `darken` lleva los tonos oscuros desde los de Material hasta casi negro.
+
+## Ventana de ajustes
+
+`flandre settings` (también "Flandre" en la parrilla de apps tras el `setup`) es una ventana
+libadwaita con previsualización en vivo: un escritorio de mentira (barra superior, headerbar,
+sidebar, card, popover, botones), la paleta, las carpetas recoloreadas y los colores de terminal.
+Edita esquema, tinte, oscuridad, familia de iconos (Tela / Papirus), qué color del esquema pinta
+los iconos (o un tono a medida), el estilo de la barra superior (negra, de color, transparente) y
+los destinos, y aplica con un botón.
 
 ## Instalación
 
@@ -50,8 +59,9 @@ systemd (`flandre watch`), activa User Themes, desactiva la extensión Material 
 defecto y aplica el tema una vez. `--no-rc` y `--no-flatpak` saltan esos dos pasos.
 
 Requisitos: GNOME 47 o más nuevo, el paquete `gnome-shell-extensions` (User Themes), `adw-gtk3`
-y el tema de iconos Tela (`tela-icon-theme` en Arch). Para compilar hacen falta Rust y las
-cabeceras de GLib (`glib2-devel` en Arch, `libglib2.0-dev` en Debian).
+y Tela o Papirus (`tela-icon-theme` / `papirus-icon-theme` en Arch). Para compilar hacen falta
+Rust y las cabeceras de GTK 4 y libadwaita (`gtk4`, `libadwaita` en Arch; `libgtk-4-dev`,
+`libadwaita-1-dev` en Debian).
 
 ## Uso
 
@@ -64,6 +74,7 @@ flandre watch            # lo que ejecuta el servicio
 flandre doctor           # comprueba cada pieza
 flandre colors [--json]  # imprime la paleta
 flandre sequences        # imprime los códigos de escape
+flandre settings         # la ventana de previsualización
 ```
 
 La configuración vive en `~/.config/flandre/config.toml`; mira [`config.example.toml`](config.example.toml).

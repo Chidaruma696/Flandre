@@ -1,10 +1,13 @@
-# ~/.config/flandre/config.toml  (every key is optional)
+# ~/.config/flandre/config.toml  (every key is optional; `flandre settings` edits it with a preview)
 
 # Material scheme: tonal-spot | vibrant | expressive | fruit-salad | rainbow | neutral | monochrome | fidelity | content
 variant = "fruit-salad"
 
 # How far the wallpaper hue is pushed into neutral surfaces: soft | normal | strong
 tint = "strong"
+
+# Dark mode only: 0.0 = Material's own tones, 1.0 = near black
+darken = 0.5
 
 # Shell command run after every apply. FLANDRE_PRIMARY and FLANDRE_MODE are in its environment.
 extra_command = ""
@@ -15,12 +18,17 @@ notify = true
 [targets]
 gtk = true        # ~/.config/gtk-4.0/gtk.css and gtk-3.0/gtk.css (libadwaita + adw-gtk3)
 shell = true      # ~/.local/share/themes/Flandre (via User Themes)
-icons = true      # ~/.local/share/icons/Flandre-<hex>
+icons = true      # ~/.local/share/icons/Flandre-<family>-<hex>
 ptyxis = true
 console = true
 blackbox = true
 terminals = true  # OSC sequences to open ptys + ~/.cache/flandre/sequences
 
 [icons]
-base = "Tela"              # family to recolour; needs Tela, Tela-dark and Tela-light installed
-source_accent = "#5294e2"  # the colour that family paints its folders with
+family = "auto"               # auto | tela | papirus (auto = Tela if installed, else Papirus)
+accent = "primary-container"  # primary-container | primary | secondary | tertiary | custom
+tone = 45.0                   # tone for "custom" (0 black .. 100 white)
+chroma = 0.0                  # minimum colourfulness; 0 keeps the scheme's own
+
+[shell]
+panel = "black"               # black | colored | transparent

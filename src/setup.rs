@@ -49,6 +49,17 @@ pub fn run(no_rc: bool, no_flatpak: bool) -> Result<Vec<String>> {
         log.push("warning: could not enable flandre.service (systemctl --user)".into());
     }
 
+    // 2b. launcher for the settings window
+    let desktop = util::data_home().join("applications/flandre.desktop");
+    util::write_atomic(
+        &desktop,
+        format!(
+            "[Desktop Entry]\nType=Application\nName=Flandre\nComment=Wallpaper colours for GNOME, GTK apps, icons and terminals\nExec={} settings\nIcon=preferences-color\nTerminal=false\nCategories=Settings;DesktopSettings;GTK;GNOME;\nKeywords=theme;wallpaper;material;colors;\n",
+            target.display()
+        )
+        .as_bytes(),
+    )?;
+
     // 3. User Themes on, Material You off
     if util::exists_in_path("gnome-extensions") {
         if util::run_quiet("gnome-extensions", &["enable", shell::USER_THEME_UUID]) {
@@ -159,14 +170,20 @@ pub fn doctor() -> Vec<(String, bool, String)> {
         },
     );
     let cfg = Config::load();
-    let base = cfg
-        .as_ref()
-        .map(|c| c.icons.base.clone())
-        .unwrap_or_else(|_| "Tela".into());
-    let tela = ["/usr/share/icons", &format!("{}/icons", util::data_home().display())]
-        .iter()
-        .any(|d| std::path::Path::new(d).join(&base).join("index.theme").exists());
-    check(&mut rows, "icon family", tela, format!("{base} (+ {base}-dark/-light)"));
+    let fam = crate::targets::icons::resolve_family(
+        cfg.as_ref()
+            .map(|c| c.icons.family)
+            .unwrap_or(crate::config::IconFamily::Auto),
+    );
+    check(
+        &mut rows,
+        "icon family",
+        fam.is_ok(),
+        match &fam {
+            Ok(f) => format!("{} (+ {} / {})", f.base, f.dark, f.light),
+            Err(e) => format!("{e}"),
+        },
+    );
     check(
         &mut rows,
         "adw-gtk3",

@@ -3,6 +3,7 @@
 mod apply;
 mod colors;
 mod config;
+mod gui;
 mod setup;
 mod targets;
 mod util;
@@ -75,6 +76,8 @@ enum Cmd {
     },
     /// Print the escape sequences that repaint a terminal (for shell rc files)
     Sequences,
+    /// Open the settings window (preview, tint, icons, top bar)
+    Settings,
 }
 
 fn main() -> Result<()> {
@@ -155,20 +158,21 @@ fn main() -> Result<()> {
             let w = apply::current_wallpaper(dark)?;
             let source = colors::source_from_image(&w)?;
             let theme = colors::build_theme(source, cfg.variant);
-            let p = colors::Palette::build(&theme, dark, cfg.tint);
+            let p = colors::Palette::build(&theme, dark, cfg.tint, cfg.darken);
             if json {
                 print!("{}", targets::osc::colors_json(&p));
             } else {
                 print!("{}", targets::osc::colors_sh(&p));
             }
         }
+        Cmd::Settings => gui::run()?,
         Cmd::Sequences => {
             let cfg = Config::load()?;
             let dark = apply::prefers_dark();
             let w = apply::current_wallpaper(dark)?;
             let source = colors::source_from_image(&w)?;
             let theme = colors::build_theme(source, cfg.variant);
-            let p = colors::Palette::build(&theme, dark, cfg.tint);
+            let p = colors::Palette::build(&theme, dark, cfg.tint, cfg.darken);
             print!("{}", targets::osc::sequences(&p));
         }
     }

@@ -4,7 +4,7 @@
 //! tables in adwaita-material-you by Francesco Caracciolo and was reworked so
 //! the tint level can be dialled up.
 
-use crate::config::{Tint, Variant};
+use crate::config::{AccentRole, Icons, Tint, Variant};
 use anyhow::{Context, Result, anyhow};
 use material_colors::{
     blend,
@@ -58,6 +58,7 @@ pub struct Palette {
     pub dark: bool,
     pub source: Argb,
     pub tint: Tint,
+    pub darken: f64,
     // Material roles
     pub primary: Argb,
     pub on_primary: Argb,
@@ -144,7 +145,8 @@ fn harmonize(design: &str, source: Argb) -> Argb {
 }
 
 impl Palette {
-    pub fn build(theme: &Theme, dark: bool, tint: Tint) -> Self {
+    pub fn build(theme: &Theme, dark: bool, tint: Tint, darken: f64) -> Self {
+        let darken = darken.clamp(0.0, 1.0);
         let s = if dark {
             &theme.schemes.dark
         } else {
@@ -164,16 +166,18 @@ impl Palette {
 
         // Dark tones sit a notch under Material's (6/10/12/17/22): the user wants a dark desktop,
         // not a grey-blue one.
+        // `darken` slides the dark tones between Material's (6/10/12/17/22) and a near-black set.
+        let dt = |material: f64, darkest: f64| material - (material - darkest) * darken;
         let (surface, surface_dim, surface_bright, lowest, low, container, high, highest) = if dark {
             (
-                pick(s.surface, 5.0),
-                pick(s.surface_dim, 5.0),
-                pick(s.surface_bright, 22.0),
-                pick(s.surface_container_lowest, 3.0),
-                pick(s.surface_container_low, 8.0),
-                pick(s.surface_container, 11.0),
-                pick(s.surface_container_high, 14.0),
-                pick(s.surface_container_highest, 19.0),
+                pick(s.surface, dt(6.0, 3.0)),
+                pick(s.surface_dim, dt(6.0, 3.0)),
+                pick(s.surface_bright, dt(24.0, 19.0)),
+                pick(s.surface_container_lowest, dt(4.0, 2.0)),
+                pick(s.surface_container_low, dt(10.0, 6.0)),
+                pick(s.surface_container, dt(12.0, 9.0)),
+                pick(s.surface_container_high, dt(17.0, 12.0)),
+                pick(s.surface_container_highest, dt(22.0, 16.0)),
             )
         } else {
             (
@@ -292,6 +296,7 @@ impl Palette {
             dark,
             source,
             tint,
+            darken,
             primary: s.primary,
             on_primary: s.on_primary,
             primary_container: s.primary_container,
@@ -354,15 +359,26 @@ impl Palette {
         }
     }
 
-    /// Icon accent: a mid-tone of the primary that reads well on both folders and symbolic icons.
-    pub fn icon_accent(&self) -> Argb {
-        let h = Hct::new(self.primary);
-        Hct::from(
-            h.get_hue(),
-            h.get_chroma().max(36.0),
-            if self.dark { 62.0 } else { 48.0 },
-        )
-        .into()
+    /// Icon colour: the scheme role the user picked, applied as is (like Material You did), with an
+    /// optional chroma floor so pale schemes still give coloured folders.
+    pub fn icon_accent(&self, icons: &Icons) -> Argb {
+        let base = match icons.accent {
+            AccentRole::PrimaryContainer => self.primary_container,
+            AccentRole::Primary => self.primary,
+            AccentRole::Secondary => self.secondary,
+            AccentRole::Tertiary => self.tertiary,
+            AccentRole::Custom => {
+                let h = Hct::new(self.primary);
+                Hct::from(h.get_hue(), h.get_chroma(), icons.tone.clamp(5.0, 95.0)).into()
+            }
+        };
+        if icons.chroma > 0.0 {
+            let h = Hct::new(base);
+            if h.get_chroma() < icons.chroma {
+                return Hct::from(h.get_hue(), icons.chroma, h.get_tone()).into();
+            }
+        }
+        base
     }
 
     /// Recolours an arbitrary colour the way the tint level asks for: greys take the neutral hue,
@@ -381,7 +397,7 @@ impl Palette {
             };
             // Dark mode backgrounds (tones under 60) go a notch darker than stock.
             let t = if self.dark && t < 60.0 && self.tint != Tint::Soft {
-                t * 0.85
+                t * (1.0 - 0.3 * self.darken)
             } else {
                 t
             };

@@ -57,20 +57,70 @@ impl Default for Targets {
     }
 }
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, clap::ValueEnum)]
+#[serde(rename_all = "kebab-case")]
+pub enum IconFamily {
+    /// Tela if installed, else Papirus.
+    Auto,
+    Tela,
+    Papirus,
+}
+
+/// Which colour of the scheme the icons are painted with.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, clap::ValueEnum)]
+#[serde(rename_all = "kebab-case")]
+pub enum AccentRole {
+    /// Material You's own choice for folders: deep in dark mode, pastel in light mode.
+    PrimaryContainer,
+    Primary,
+    Secondary,
+    Tertiary,
+    /// The primary hue at the tone chosen in `icons.tone`.
+    Custom,
+}
+
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(default)]
 pub struct Icons {
-    /// Icon theme family to recolour (needs `<base>` and `<base>-dark`/`<base>-light` installed).
-    pub base: String,
-    /// Colour the recoloured icons are painted with when the family uses a different accent.
-    pub source_accent: String,
+    pub family: IconFamily,
+    pub accent: AccentRole,
+    /// Tone (0 = black, 100 = white) used when `accent = "custom"`.
+    pub tone: f64,
+    /// Minimum chroma (colourfulness) for the icon colour; 0 keeps the scheme's own.
+    pub chroma: f64,
 }
 
 impl Default for Icons {
     fn default() -> Self {
         Self {
-            base: "Tela".into(),
-            source_accent: "#5294e2".into(),
+            family: IconFamily::Auto,
+            accent: AccentRole::PrimaryContainer,
+            tone: 45.0,
+            chroma: 0.0,
+        }
+    }
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, clap::ValueEnum)]
+#[serde(rename_all = "kebab-case")]
+pub enum PanelStyle {
+    /// Stock GNOME: black bar.
+    Black,
+    /// Painted with the tinted surface colour.
+    Colored,
+    Transparent,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(default)]
+pub struct Shell {
+    pub panel: PanelStyle,
+}
+
+impl Default for Shell {
+    fn default() -> Self {
+        Self {
+            panel: PanelStyle::Black,
         }
     }
 }
@@ -80,11 +130,14 @@ impl Default for Icons {
 pub struct Config {
     pub variant: Variant,
     pub tint: Tint,
+    /// 0.0 = Material's own tones, 1.0 = as dark as it goes (dark mode only).
+    pub darken: f64,
     /// Extra shell command run after every apply (like Material You's `extra-command`).
     pub extra_command: String,
     pub notify: bool,
     pub targets: Targets,
     pub icons: Icons,
+    pub shell: Shell,
 }
 
 impl Default for Config {
@@ -92,10 +145,12 @@ impl Default for Config {
         Self {
             variant: Variant::FruitSalad,
             tint: Tint::Strong,
+            darken: 0.5,
             extra_command: String::new(),
             notify: true,
             targets: Targets::default(),
             icons: Icons::default(),
+            shell: Shell::default(),
         }
     }
 }
@@ -114,18 +169,23 @@ impl Config {
         toml::from_str(&text).with_context(|| format!("parsing {}", p.display()))
     }
 
+    pub fn save(&self) -> Result<()> {
+        let text = format!(
+            "# Flandre configuration. Every key is optional; `flandre settings` edits this file.\n\
+             # variant: tonal-spot | vibrant | expressive | fruit-salad | rainbow | neutral | monochrome | fidelity | content\n\
+             # tint: soft | normal | strong    darken: 0.0-1.0\n\
+             # icons.family: auto | tela | papirus    icons.accent: primary-container | primary | secondary | tertiary | custom\n\
+             # shell.panel: black | colored | transparent\n\n{}",
+            toml::to_string_pretty(self)?
+        );
+        util::write_atomic(&path(), text.as_bytes())
+    }
+
     pub fn write_default_if_missing() -> Result<bool> {
-        let p = path();
-        if p.exists() {
+        if path().exists() {
             return Ok(false);
         }
-        let text = format!(
-            "# Flandre configuration. Every key is optional.\n\
-             # variant: tonal-spot | vibrant | expressive | fruit-salad | rainbow | neutral | monochrome | fidelity | content\n\
-             # tint: soft | normal | strong\n\n{}",
-            toml::to_string_pretty(&Self::default())?
-        );
-        util::write_atomic(&p, text.as_bytes())?;
+        Self::default().save()?;
         Ok(true)
     }
 }

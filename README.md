@@ -20,7 +20,7 @@ dependencies beyond GLib, and it reaches further:
 |---|---|
 | **libadwaita (GTK 4)** and **adw-gtk3 (GTK 3)** | Every named colour libadwaita exposes (accent, surfaces, headerbar, sidebars, cards, dialogs, popovers, the `blue_1`…`dark_5` palette rows) in `~/.config/gtk-{3,4}.0/gtk.css`, plus a few rules that push the wash into selections, tabs, switches and OSDs. |
 | **GNOME Shell** | The stylesheet of the *installed* gnome-shell is read from its GResource and every colour literal is rewritten (greys take the wallpaper hue, saturated colours are harmonised, the accent keywords become the primary). Loaded through User Themes, so it never lags behind a Shell update. |
-| **Icons** | A `Flandre-<hex>` theme built on top of Tela: every SVG carrying Tela's accent is recoloured, everything else is inherited. About 13 MB, under a second. |
+| **Icons** | A `Flandre-<family>-<hex>` theme built on top of Tela or Papirus: every SVG carrying the family's folder colour is recoloured (all sizes, symlinked names included) with the scheme colour you pick (primary container by default, like Material You), everything else is inherited. Under a second. |
 | **Ptyxis** | A native `.palette` (light + dark, titlebar included) selected in every profile. Host package and Flatpak. |
 | **GNOME Console** | A custom *livery* written to `org.gnome.Console custom-liveries` and selected (Console 49+). |
 | **Black Box** | `Flandre Dark` / `Flandre Light` JSON schemes plus `theme-dark` / `theme-light` / `pretty`. Host package and Flatpak. |
@@ -29,7 +29,16 @@ dependencies beyond GLib, and it reaches further:
 
 Three tint levels (`soft`, `normal`, `strong`) control how far the wallpaper hue goes into the
 neutral greys and how much of the accent washes headerbars, sidebars and popovers. `strong` is the
-default and is meant to be aggressive; it keeps dark surfaces dark by tinting hue at constant tone.
+default and is meant to be aggressive; it keeps dark surfaces dark by tinting hue at constant tone,
+and a `darken` slider takes the dark tones from Material's down to near black.
+
+## Settings window
+
+`flandre settings` (also "Flandre" in the app grid after `setup`) is a libadwaita window with a live
+preview: a mock desktop (top bar, headerbar, sidebar, card, popover, buttons), the palette, the
+recoloured folder icons and the terminal colours. It edits scheme, tint, darkness, icon family
+(Tela / Papirus), which scheme colour paints the icons (or a custom tone), the top bar style
+(black, coloured, transparent) and the targets, then applies with one button.
 
 ## Install
 
@@ -47,8 +56,9 @@ cargo build --release
 applies the theme once. `--no-rc` and `--no-flatpak` skip those two steps.
 
 Requirements: GNOME 47 or newer, the `gnome-shell-extensions` package (User Themes),
-`adw-gtk3` and the Tela icon theme (`tela-icon-theme` on Arch). Build needs Rust and the GLib
-development files (`glib2-devel` on Arch, `libglib2.0-dev` on Debian).
+`adw-gtk3` and Tela or Papirus (`tela-icon-theme` / `papirus-icon-theme` on Arch). Build needs
+Rust, GTK 4 and libadwaita development files (`gtk4`, `libadwaita` on Arch; `libgtk-4-dev`,
+`libadwaita-1-dev` on Debian).
 
 ## Use
 
@@ -61,6 +71,7 @@ flandre watch            # what the service runs
 flandre doctor           # check every piece
 flandre colors [--json]  # print the palette
 flandre sequences        # print the escape codes
+flandre settings         # the preview window
 ```
 
 Configuration lives in `~/.config/flandre/config.toml`; see [`config.example.toml`](config.example.toml).

@@ -3,10 +3,109 @@
 //! inheriting the rest. Same idea as Nyarch's Tela trick, without the 118 MB clone.
 
 use crate::colors::{Palette, hex};
-use crate::config::Icons;
+use crate::config::{IconFamily, Icons};
 use crate::util;
 use anyhow::{Context, Result, anyhow};
+use material_colors::{color::Argb, hct::Hct};
 use std::path::{Path, PathBuf};
+
+/// An icon family Flandre knows how to recolour.
+pub struct Family {
+    pub name: &'static str,
+    pub base: &'static str,
+    pub dark: &'static str,
+    pub light: &'static str,
+    /// The colour the family paints its folders with.
+    pub main: &'static str,
+    /// A lighter companion colour (Papirus paints the folder front with it).
+    pub highlight: Option<&'static str>,
+}
+
+pub const FAMILIES: [Family; 2] = [
+    Family {
+        name: "Tela",
+        base: "Tela",
+        dark: "Tela-dark",
+        light: "Tela-light",
+        main: "#5294e2",
+        highlight: None,
+    },
+    Family {
+        name: "Papirus",
+        base: "Papirus",
+        dark: "Papirus-Dark",
+        light: "Papirus-Light",
+        main: "#3a87e5",
+        highlight: Some("#93c0ea"),
+    },
+];
+
+pub fn family_installed(f: &Family) -> bool {
+    find_theme(f.base).is_some()
+}
+
+/// Resolves the configured family, falling back to whatever is installed.
+pub fn resolve_family(cfg: IconFamily) -> Result<&'static Family> {
+    let wanted = match cfg {
+        IconFamily::Tela => Some("Tela"),
+        IconFamily::Papirus => Some("Papirus"),
+        IconFamily::Auto => None,
+    };
+    if let Some(w) = wanted {
+        let f = FAMILIES.iter().find(|f| f.name == w).unwrap();
+        return if family_installed(f) {
+            Ok(f)
+        } else {
+            Err(anyhow!(
+                "icon family {} is not installed (looked in XDG icon dirs)",
+                f.base
+            ))
+        };
+    }
+    FAMILIES
+        .iter()
+        .find(|f| family_installed(f))
+        .ok_or_else(|| anyhow!("neither Tela nor Papirus is installed"))
+}
+
+/// Papirus-style two-tone folders: the companion colour follows the accent with the same tone gap.
+pub fn highlight_for(accent: Argb, family: &Family) -> Option<Argb> {
+    let hl = family.highlight?;
+    let main = Hct::new(crate::colors::parse_hex(family.main).ok()?);
+    let hl = Hct::new(crate::colors::parse_hex(hl).ok()?);
+    let a = Hct::new(accent);
+    let tone = (a.get_tone() + (hl.get_tone() - main.get_tone())).clamp(0.0, 100.0);
+    Some(Hct::from(a.get_hue(), a.get_chroma().min(hl.get_chroma().max(24.0)), tone).into())
+}
+
+/// Recolours one SVG's text: main accent and, when the family has one, the highlight.
+pub fn recolor_svg(text: &str, family: &Family, accent: Argb) -> String {
+    let accent_hex = hex(accent);
+    let mut new = replace_ci(text, family.main, &accent_hex);
+    if let Some(hl) = family.highlight
+        && let Some(hl_new) = highlight_for(accent, family)
+    {
+        new = replace_ci(&new, hl, &hex(hl_new));
+    }
+    // Tela's KDE colour-scheme hooks: paint the highlight class too.
+    if new.contains("ColorScheme-Highlight") {
+        new = new.replace(
+            "ColorScheme-Highlight\" style=\"color:currentColor",
+            &format!("ColorScheme-Highlight\" style=\"color:{accent_hex}"),
+        );
+    }
+    new
+}
+
+fn replace_ci(text: &str, from: &str, to: &str) -> String {
+    text.replace(&from.to_ascii_lowercase(), to)
+        .replace(&from.to_ascii_uppercase(), to)
+}
+
+pub fn has_accent(text: &str, family: &Family) -> bool {
+    let m = family.main;
+    text.contains(&m.to_ascii_lowercase()) || text.contains(&m.to_ascii_uppercase())
+}
 
 const ICON_SCHEMA: &str = "org.gnome.desktop.interface";
 
@@ -19,7 +118,7 @@ fn icon_dirs() -> Vec<PathBuf> {
     v
 }
 
-fn find_theme(name: &str) -> Option<PathBuf> {
+pub fn find_theme(name: &str) -> Option<PathBuf> {
     icon_dirs()
         .into_iter()
         .map(|d| d.join(name))
@@ -80,13 +179,14 @@ pub struct IconResult {
 }
 
 pub fn apply(p: &Palette, cfg: &Icons) -> Result<IconResult> {
-    let variant_name = format!("{}-{}", cfg.base, if p.dark { "dark" } else { "light" });
-    let variant = find_theme(&variant_name);
-    let base = find_theme(&cfg.base)
-        .ok_or_else(|| anyhow!("icon theme {} not installed (looked in XDG icon dirs)", cfg.base))?;
-    let accent = p.icon_accent();
+    let family = resolve_family(cfg.family)?;
+    let variant_name = if p.dark { family.dark } else { family.light };
+    let variant = find_theme(variant_name);
+    let base = find_theme(family.base)
+        .ok_or_else(|| anyhow!("icon theme {} not installed (looked in XDG icon dirs)", family.base))?;
+    let accent = p.icon_accent(cfg);
     let accent_hex = hex(accent);
-    let name = format!("Flandre-{}", &accent_hex[1..]);
+    let name = format!("Flandre-{}-{}", family.name, &accent_hex[1..]);
     let dest = util::data_home().join("icons").join(&name);
     if dest.join("index.theme").is_file() {
         // Already built for this exact accent; just make sure it is selected.
@@ -101,8 +201,6 @@ pub fn apply(p: &Palette, cfg: &Icons) -> Result<IconResult> {
     let _ = std::fs::remove_dir_all(&tmp);
     std::fs::create_dir_all(&tmp)?;
 
-    let source_accent = cfg.source_accent.to_ascii_lowercase();
-    let source_accent_upper = source_accent.to_ascii_uppercase();
     let mut recolored = 0usize;
     // Variant first (dark/light specific files win), then the base family.
     let mut roots: Vec<&Path> = Vec::new();
@@ -147,20 +245,8 @@ pub fn apply(p: &Palette, cfg: &Icons) -> Result<IconResult> {
         }
     }
 
-    let has_accent = |text: &str| text.contains(&source_accent) || text.contains(&source_accent_upper);
-    let recolor = |text: &str| {
-        let mut new = text
-            .replace(&source_accent, &accent_hex)
-            .replace(&source_accent_upper, &accent_hex);
-        // Tela's KDE colour-scheme hooks: paint the highlight class too.
-        if new.contains("ColorScheme-Highlight") {
-            new = new.replace(
-                "ColorScheme-Highlight\" style=\"color:currentColor",
-                &format!("ColorScheme-Highlight\" style=\"color:{accent_hex}"),
-            );
-        }
-        new
-    };
+    let has_accent = |text: &str| has_accent(text, family);
+    let recolor = |text: &str| recolor_svg(text, family, accent);
     // Icon name (category/file) -> whether some size of it carries the accent. GTK prefers the
     // theme's own directories over inherited ones even at other sizes, so once one size of a name
     // is in the theme every size must be, or a 24px icon ends up scaled to 64px.
@@ -241,17 +327,20 @@ pub fn apply(p: &Palette, cfg: &Icons) -> Result<IconResult> {
     // index.theme: take the variant's (or base's) directory list, rename, and inherit the family.
     let index_src = variant.as_ref().unwrap_or(&base).join("index.theme");
     let index = std::fs::read_to_string(&index_src).with_context(|| format!("reading {}", index_src.display()))?;
-    let mut inherits = Vec::new();
+    let mut inherits: Vec<String> = Vec::new();
     if variant.is_some() {
-        inherits.push(variant_name.clone());
+        inherits.push(variant_name.to_string());
     }
-    inherits.push(cfg.base.clone());
+    inherits.push(family.base.to_string());
     let mut out = String::new();
     for line in index.lines() {
         if line.starts_with("Name=") {
             out.push_str(&format!("Name={name}\n"));
         } else if line.starts_with("Comment=") {
-            out.push_str("Comment=Tela recoloured by Flandre from the wallpaper\n");
+            out.push_str(&format!(
+                "Comment={} recoloured by Flandre from the wallpaper\n",
+                family.name
+            ));
         } else if line.starts_with("Inherits=") {
             let old = line.trim_start_matches("Inherits=");
             let mut all = inherits.clone();
