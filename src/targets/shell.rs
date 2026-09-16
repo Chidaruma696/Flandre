@@ -103,9 +103,12 @@ pub fn extra_css(p: &Palette, shell: &Shell) -> String {
             "#panel {{ background-color: rgba({r}, {g}, {b}, {alpha:.2}); }}\n#panel:overview {{ background-color: transparent; }}\n"
         )
     };
+    // "Black" is the stock bar: black in dark mode, the light surface in light mode (a translucent
+    // black bar under light-mode dark icons made them vanish).
+    let stock_bar = if p.dark { None } else { Some(p.surface) };
     let panel = match shell.panel {
         PanelStyle::Black if alpha >= 1.0 => String::new(),
-        PanelStyle::Black => bar(None),
+        PanelStyle::Black => bar(stock_bar),
         PanelStyle::Colored => bar(Some(p.surface_container)),
         PanelStyle::Transparent => "#panel { background-color: transparent; }\n".to_string(),
     };

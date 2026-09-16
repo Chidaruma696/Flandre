@@ -39,7 +39,8 @@ pub struct PtyxisResult {
     pub profiles: usize,
 }
 
-pub fn apply(dark: &Palette, light: &Palette) -> Result<PtyxisResult> {
+pub fn apply(dark: &Palette, light: &Palette, opacity: f64) -> Result<PtyxisResult> {
+    let opacity = opacity.clamp(0.0, 1.0);
     let text = palette_file(dark, light);
     let mut files = Vec::new();
     let mut profiles = 0;
@@ -51,7 +52,7 @@ pub fn apply(dark: &Palette, light: &Palette) -> Result<PtyxisResult> {
             .join(format!("{PALETTE_ID}.palette"));
         util::write_atomic(&f, text.as_bytes())?;
         files.push(f);
-        profiles += select_host()?;
+        profiles += select_host(opacity)?;
     }
     if util::flatpak_app_installed(FLATPAK_ID) {
         let f = util::home()
@@ -61,12 +62,12 @@ pub fn apply(dark: &Palette, light: &Palette) -> Result<PtyxisResult> {
             .join(format!("{PALETTE_ID}.palette"));
         util::write_atomic(&f, text.as_bytes())?;
         files.push(f);
-        profiles += select_flatpak();
+        profiles += select_flatpak(opacity);
     }
     Ok(PtyxisResult { files, profiles })
 }
 
-fn select_host() -> Result<usize> {
+fn select_host(opacity: f64) -> Result<usize> {
     let Some(s) = util::settings("org.gnome.Ptyxis") else {
         return Ok(0);
     };
@@ -79,6 +80,7 @@ fn select_host() -> Result<usize> {
     for u in uuids {
         if let Some(prof) = util::settings_at("org.gnome.Ptyxis.Profile", &format!("/org/gnome/Ptyxis/Profiles/{u}/"))
             && prof.set_string("palette", PALETTE_ID).is_ok()
+            && prof.set_double("opacity", opacity).is_ok()
         {
             n += 1;
         }
@@ -87,7 +89,7 @@ fn select_host() -> Result<usize> {
     Ok(n)
 }
 
-fn select_flatpak() -> usize {
+fn select_flatpak(opacity: f64) -> usize {
     let gs = |args: &[&str]| {
         let mut full = vec!["run", "--command=gsettings", FLATPAK_ID];
         full.extend_from_slice(args);
@@ -103,6 +105,7 @@ fn select_flatpak() -> usize {
             continue;
         }
         let path = format!("org.gnome.Ptyxis.Profile:/org/gnome/Ptyxis/Profiles/{u}/");
+        let _ = gs(&["set", &path, "opacity", &format!("{opacity:.2}")]);
         if gs(&["set", &path, "palette", PALETTE_ID]).is_some() {
             n += 1;
         }

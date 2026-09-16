@@ -70,7 +70,11 @@ fn draw_desktop(cr: &cairo::Context, w: f64, h: f64, st: &State) {
     // top panel
     let a = st.cfg.shell.panel_opacity.clamp(0.0, 1.0);
     match st.cfg.shell.panel {
-        PanelStyle::Black => cr.set_source_rgba(0.0, 0.0, 0.0, a),
+        PanelStyle::Black if p.dark => cr.set_source_rgba(0.0, 0.0, 0.0, a),
+        PanelStyle::Black => {
+            let c = p.surface;
+            cr.set_source_rgba(c.red as f64 / 255.0, c.green as f64 / 255.0, c.blue as f64 / 255.0, a);
+        }
         PanelStyle::Colored => {
             let c = p.surface_container;
             cr.set_source_rgba(c.red as f64 / 255.0, c.green as f64 / 255.0, c.blue as f64 / 255.0, a);
@@ -164,7 +168,17 @@ fn draw_desktop(cr: &cairo::Context, w: f64, h: f64, st: &State) {
 
 fn draw_terminal(cr: &cairo::Context, w: f64, h: f64, st: &State) {
     let p = &st.palette;
-    rgb(cr, p.term_bg);
+    // "wallpaper" behind, so the opacity reads
+    rgb(cr, p.source);
+    rounded(cr, 0.0, 0.0, w, h, 8.0);
+    let _ = cr.fill();
+    let c = p.term_bg;
+    cr.set_source_rgba(
+        c.red as f64 / 255.0,
+        c.green as f64 / 255.0,
+        c.blue as f64 / 255.0,
+        st.cfg.terminals.opacity.clamp(0.0, 1.0),
+    );
     rounded(cr, 0.0, 0.0, w, h, 8.0);
     let _ = cr.fill();
     let cell = ((w - 16.0) / 8.0).min(28.0);
@@ -540,7 +554,7 @@ fn build_ui(app: &adw::Application) {
             "Color del panel fuera de la vista general",
         ),
         &[
-            t("Black (stock)", "Negra (como GNOME)"),
+            t("Stock (black in dark mode)", "Como GNOME (negra en oscuro)"),
             t("Coloured", "De color"),
             t("Transparent", "Transparente"),
         ],
@@ -558,6 +572,23 @@ fn build_ui(app: &adw::Application) {
     g_shell.add(&panel_row);
     g_shell.add(&opacity_row);
     page.add(&g_shell);
+
+    let g_term = adw::PreferencesGroup::builder()
+        .title(t("Terminals", "Terminales"))
+        .build();
+    let (term_opacity_row, term_opacity_scale) = scale_row(
+        t("Terminal opacity", "Opacidad de la terminal"),
+        t(
+            "Ptyxis, Console and Black Box background",
+            "Fondo de Ptyxis, Console y Black Box",
+        ),
+        0.0,
+        1.0,
+        0.05,
+        st.borrow().cfg.terminals.opacity,
+    );
+    g_term.add(&term_opacity_row);
+    page.add(&g_term);
 
     let g_targets = adw::PreferencesGroup::builder()
         .title(t("Apply to", "Aplicar a"))
@@ -658,6 +689,11 @@ fn build_ui(app: &adw::Application) {
     on_change!(panel_row, connect_selected_notify, |s, w| s.cfg.shell.panel =
         panels[w.selected() as usize]);
     on_change!(opacity_scale, connect_value_changed, |s, w| s.cfg.shell.panel_opacity =
+        w.value());
+    on_change!(term_opacity_scale, connect_value_changed, |s, w| s
+        .cfg
+        .terminals
+        .opacity =
         w.value());
     on_change!(sw_gtk, connect_active_notify, |s, w| s.cfg.targets.gtk = w.is_active());
     on_change!(sw_shell, connect_active_notify, |s, w| s.cfg.targets.shell =

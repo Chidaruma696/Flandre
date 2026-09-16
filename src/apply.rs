@@ -53,7 +53,7 @@ fn stamp(source: Argb, dark: bool, cfg: &Config, wallpaper: Option<&Path>) -> St
         .map(|d| d.as_secs())
         .unwrap_or(0);
     format!(
-        "{} {} {:?} {:?} {} {:?} {:?} {} {} {:?} {}",
+        "{} {} {:?} {:?} {} {:?} {:?} {:?} {} {} {:?} {}",
         hex(source),
         dark,
         cfg.variant,
@@ -61,6 +61,7 @@ fn stamp(source: Argb, dark: bool, cfg: &Config, wallpaper: Option<&Path>) -> St
         cfg.darken,
         cfg.icons,
         cfg.shell,
+        cfg.terminals,
         wallpaper.map(|w| w.display().to_string()).unwrap_or_default(),
         mtime,
         cfg.targets_key(),
@@ -137,7 +138,7 @@ pub fn run(cfg: &Config, opts: &Options) -> Result<Report> {
     ));
 
     if cfg.targets.gtk {
-        match targets::gtk::apply(p) {
+        match targets::gtk::apply(p, &pal_dark, &pal_light) {
             Ok(files) => lines.push(format!("gtk: {}", files.join(", "))),
             Err(e) => warnings.push(format!("gtk: {e:#}")),
         }
@@ -160,7 +161,7 @@ pub fn run(cfg: &Config, opts: &Options) -> Result<Report> {
         }
     }
     if cfg.targets.ptyxis {
-        match targets::ptyxis::apply(&pal_dark, &pal_light) {
+        match targets::ptyxis::apply(&pal_dark, &pal_light, cfg.terminals.opacity) {
             Ok(r) if r.files.is_empty() => lines.push("ptyxis: not installed".into()),
             Ok(r) => lines.push(format!(
                 "ptyxis: {} ({} profile(s) switched)",
@@ -175,7 +176,7 @@ pub fn run(cfg: &Config, opts: &Options) -> Result<Report> {
         }
     }
     if cfg.targets.console {
-        match targets::console::apply(&pal_dark, &pal_light) {
+        match targets::console::apply(&pal_dark, &pal_light, cfg.terminals.opacity) {
             Ok(targets::console::ConsoleResult::NotInstalled) => lines.push("console: not installed".into()),
             Ok(targets::console::ConsoleResult::Host) => {
                 lines.push("console: livery written to org.gnome.Console".into())
@@ -185,7 +186,7 @@ pub fn run(cfg: &Config, opts: &Options) -> Result<Report> {
         }
     }
     if cfg.targets.blackbox {
-        match targets::blackbox::apply(&pal_dark, &pal_light) {
+        match targets::blackbox::apply(&pal_dark, &pal_light, cfg.terminals.opacity) {
             Ok(r) if r.files.is_empty() => lines.push("blackbox: not installed".into()),
             Ok(r) => lines.push(format!(
                 "blackbox: {}",

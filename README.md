@@ -18,12 +18,13 @@ dependencies beyond GLib, and it reaches further:
 
 | Target | How |
 |---|---|
-| **libadwaita (GTK 4)** and **adw-gtk3 (GTK 3)** | Every named colour libadwaita exposes (accent, surfaces, headerbar, sidebars, cards, dialogs, popovers, the `blue_1`…`dark_5` palette rows) in `~/.config/gtk-{3,4}.0/gtk.css`, plus a few rules that push the wash into selections, tabs, switches and OSDs. |
+| **libadwaita (GTK 4)** and **adw-gtk3 (GTK 3)** | Every named colour libadwaita exposes (accent, surfaces, headerbar, sidebars, cards, dialogs, popovers, the `blue_1`…`dark_5` palette rows) in `~/.config/gtk-{3,4}.0/gtk.css`, plus a few rules that push the wash into selections, tabs, switches and OSDs. GTK 4 gets both modes as CSS variables under `@media (prefers-color-scheme)`, so running apps follow a light/dark switch without restarting. |
 | **GNOME Shell** | The stylesheet of the *installed* gnome-shell is read from its GResource and every colour literal is rewritten (greys take the wallpaper hue, saturated colours are harmonised, the accent keywords become the primary). Loaded through User Themes, so it never lags behind a Shell update. |
 | **Icons** | A `Flandre-<family>-<hex>` theme built on top of Tela or Papirus: every SVG carrying the family's folder colour is recoloured (all sizes, symlinked names included) with the scheme colour you pick (primary container by default, like Material You), everything else is inherited. Under a second. |
 | **Ptyxis** | A native `.palette` (light + dark, titlebar included) selected in every profile. Host package and Flatpak. |
 | **GNOME Console** | A custom *livery* written to `org.gnome.Console custom-liveries` and selected (Console 49+). |
 | **Black Box** | `Flandre Dark` / `Flandre Light` JSON schemes plus `theme-dark` / `theme-light` / `pretty`. Host package and Flatpak. |
+| **Terminal opacity** | One slider for Ptyxis (`opacity` in every profile), Console (livery transparency) and Black Box (`opacity`). |
 | **Open terminals** | OSC 4/10/11/12 sequences broadcast to every pty, cached in `~/.cache/flandre/sequences` for shell rc files, with `colors.json` / `colors.sh` for your own scripts. |
 | **Flatpaks** | `flatpak override --user` so sandboxed apps can read the GTK CSS, icons and themes. |
 

@@ -11,22 +11,22 @@ pub const LIVERY_UUID: &str = "f1a4d2e0-5c0d-4e1a-9d0b-f1a4d2e00001";
 const SCHEMA: &str = "org.gnome.Console";
 const FLATPAK_ID: &str = "org.gnome.Console";
 
-fn palette_variant(p: &Palette) -> Variant {
+fn palette_variant(p: &Palette, opacity: f64) -> Variant {
     let d = VariantDict::new(None);
     d.insert("foreground", rgb_tuple(p.term_fg));
     d.insert("background", rgb_tuple(p.term_bg));
     let colours: Vec<(f64, f64, f64)> = p.ansi.iter().map(|c| rgb_tuple(*c)).collect();
     d.insert("colours", colours);
-    d.insert("transparency", 0.0f64);
+    d.insert("transparency", 1.0 - opacity.clamp(0.0, 1.0));
     d.end()
 }
 
-pub fn livery_variant(dark: &Palette, light: &Palette) -> Variant {
+pub fn livery_variant(dark: &Palette, light: &Palette, opacity: f64) -> Variant {
     let d = VariantDict::new(None);
     d.insert("uuid", LIVERY_UUID);
     d.insert("name", "Flandre");
-    d.insert_value("night", &palette_variant(dark).to_variant());
-    d.insert_value("day", &palette_variant(light).to_variant());
+    d.insert_value("night", &palette_variant(dark, opacity).to_variant());
+    d.insert_value("day", &palette_variant(light, opacity).to_variant());
     d.end()
 }
 
@@ -36,8 +36,8 @@ pub enum ConsoleResult {
     Flatpak,
 }
 
-pub fn apply(dark: &Palette, light: &Palette) -> Result<ConsoleResult> {
-    let livery = livery_variant(dark, light);
+pub fn apply(dark: &Palette, light: &Palette, opacity: f64) -> Result<ConsoleResult> {
+    let livery = livery_variant(dark, light, opacity);
     if let Some(s) = util::settings(SCHEMA) {
         if !s
             .settings_schema()

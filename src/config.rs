@@ -33,6 +33,19 @@ pub enum Tint {
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(default)]
+pub struct Terminals {
+    /// Background opacity for Ptyxis, Console and Black Box: 0.0 = see-through, 1.0 = solid.
+    pub opacity: f64,
+}
+
+impl Default for Terminals {
+    fn default() -> Self {
+        Self { opacity: 1.0 }
+    }
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(default)]
 pub struct Targets {
     pub gtk: bool,
     pub shell: bool,
@@ -141,6 +154,7 @@ pub struct Config {
     pub targets: Targets,
     pub icons: Icons,
     pub shell: Shell,
+    pub terminals: Terminals,
 }
 
 impl Default for Config {
@@ -154,6 +168,7 @@ impl Default for Config {
             targets: Targets::default(),
             icons: Icons::default(),
             shell: Shell::default(),
+            terminals: Terminals::default(),
         }
     }
 }
@@ -178,7 +193,7 @@ impl Config {
              # variant: tonal-spot | vibrant | expressive | fruit-salad | rainbow | neutral | monochrome | fidelity | content\n\
              # tint: soft | normal | strong    darken: 0.0-1.0\n\
              # icons.family: auto | tela | papirus    icons.accent: primary-container | primary | secondary | tertiary | custom\n\
-             # shell.panel: black | colored | transparent\n\n{}",
+             # shell.panel: black | colored | transparent    shell.panel_opacity / terminals.opacity: 0.0-1.0\n\n{}",
             toml::to_string_pretty(self)?
         );
         util::write_atomic(&path(), text.as_bytes())

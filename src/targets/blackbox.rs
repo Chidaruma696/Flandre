@@ -26,7 +26,9 @@ pub struct BlackBoxResult {
     pub files: Vec<PathBuf>,
 }
 
-pub fn apply(dark: &Palette, light: &Palette) -> Result<BlackBoxResult> {
+pub fn apply(dark: &Palette, light: &Palette, opacity: f64) -> Result<BlackBoxResult> {
+    let percent = (opacity.clamp(0.0, 1.0) * 100.0).round() as u32;
+    let percent_s = percent.to_string();
     let mut files = Vec::new();
     let mut dirs = Vec::new();
     let host = util::exists_in_path("blackbox") || util::schema_exists(SCHEMA);
@@ -57,6 +59,7 @@ pub fn apply(dark: &Palette, light: &Palette) -> Result<BlackBoxResult> {
                 ("theme-dark", "'Flandre Dark'"),
                 ("theme-light", "'Flandre Light'"),
                 ("pretty", "true"),
+                ("opacity", percent_s.as_str()),
             ] {
                 let _ = util::run(
                     "flatpak",
@@ -67,6 +70,7 @@ pub fn apply(dark: &Palette, light: &Palette) -> Result<BlackBoxResult> {
             let _ = s.set_string("theme-dark", "Flandre Dark");
             let _ = s.set_string("theme-light", "Flandre Light");
             let _ = s.set_boolean("pretty", true);
+            let _ = s.set_uint("opacity", percent);
             gio::Settings::sync();
         }
     }
