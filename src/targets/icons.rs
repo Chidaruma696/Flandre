@@ -182,7 +182,7 @@ pub fn apply(p: &Palette, cfg: &Icons) -> Result<IconResult> {
     }
     let mut copied = std::collections::HashSet::new();
     let mut pending_links: Vec<(PathBuf, PathBuf, Option<String>)> = Vec::new();
-    for ((src, rel, target), text) in entries.iter().zip(contents.into_iter()) {
+    for ((src, rel, target), text) in entries.iter().zip(contents) {
         let Some(text) = text else { continue };
         let wanted = key(rel).is_some_and(|k| accented_names.contains(&k));
         if !wanted {
