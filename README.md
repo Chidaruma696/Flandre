@@ -6,7 +6,7 @@
 GTK 3 apps, the icon theme, Ptyxis, GNOME Console, Black Box and any terminal already open: all
 regenerated from the wallpaper every time it (or the light/dark preference) changes.
 
-![Rust](https://img.shields.io/badge/Rust-2024-orange) ![GNOME](https://img.shields.io/badge/GNOME-47%E2%80%9350-blue) ![Licence](https://img.shields.io/badge/licence-MIT-green) ![Status](https://img.shields.io/badge/status-experimental-red)
+![Rust](https://img.shields.io/badge/Rust-2024-orange) ![GNOME](https://img.shields.io/badge/GNOME-47%E2%80%9350-blue) ![Licence](https://img.shields.io/badge/licence-MIT-green)
 
 ## Why
 

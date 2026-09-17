@@ -7,7 +7,7 @@ Shell, apps libadwaita y GTK 3, el tema de iconos, Ptyxis, GNOME Console, Black 
 terminal que ya esté abierta: todo se regenera del fondo cada vez que cambia (o cambia la
 preferencia claro/oscuro).
 
-![Rust](https://img.shields.io/badge/Rust-2024-orange) ![GNOME](https://img.shields.io/badge/GNOME-47%E2%80%9350-blue) ![Licencia](https://img.shields.io/badge/licencia-MIT-green) ![Estado](https://img.shields.io/badge/estado-experimental-red)
+![Rust](https://img.shields.io/badge/Rust-2024-orange) ![GNOME](https://img.shields.io/badge/GNOME-47%E2%80%9350-blue) ![Licencia](https://img.shields.io/badge/licencia-MIT-green)
 
 ## Por qué
 
