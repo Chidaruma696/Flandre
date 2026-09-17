@@ -76,7 +76,7 @@ fn draw_desktop(cr: &cairo::Context, w: f64, h: f64, st: &State) {
             cr.set_source_rgba(c.red as f64 / 255.0, c.green as f64 / 255.0, c.blue as f64 / 255.0, a);
         }
         PanelStyle::Colored => {
-            let c = p.surface_container;
+            let c = p.panel_bg;
             cr.set_source_rgba(c.red as f64 / 255.0, c.green as f64 / 255.0, c.blue as f64 / 255.0, a);
         }
         PanelStyle::Transparent => cr.set_source_rgba(0.0, 0.0, 0.0, 0.0),
@@ -581,7 +581,20 @@ fn build_ui(app: &adw::Application) {
         st.borrow().cfg.shell.panel_opacity,
     );
     opacity_row.set_sensitive(st.borrow().cfg.shell.panel != PanelStyle::Transparent);
+    let (panel_dark_row, panel_dark_scale) = scale_row(
+        t("Top bar darkness", "Oscuridad de la barra"),
+        t(
+            "Coloured bar: 0 = Adwaita title bar tone, 1 = near black (same curve as Title bar)",
+            "Barra de color: 0 = tono de la barra de título de Adwaita, 1 = casi negra (misma curva que Barra de título)",
+        ),
+        0.0,
+        1.0,
+        0.05,
+        st.borrow().cfg.shell.panel_darkness,
+    );
+    panel_dark_row.set_sensitive(st.borrow().cfg.shell.panel == PanelStyle::Colored);
     g_shell.add(&panel_row);
+    g_shell.add(&panel_dark_row);
     g_shell.add(&opacity_row);
     page.add(&g_shell);
 
@@ -727,10 +740,19 @@ fn build_ui(app: &adw::Application) {
         w.value());
     {
         let opacity_row = opacity_row.clone();
-        panel_row.connect_selected_notify(move |w| opacity_row.set_sensitive(w.selected() != 2));
+        let panel_dark_row = panel_dark_row.clone();
+        panel_row.connect_selected_notify(move |w| {
+            opacity_row.set_sensitive(w.selected() != 2);
+            panel_dark_row.set_sensitive(w.selected() == 1);
+        });
     }
     on_change!(panel_row, connect_selected_notify, |s, w| s.cfg.shell.panel =
         panels[w.selected() as usize]);
+    on_change!(panel_dark_scale, connect_value_changed, |s, w| s
+        .cfg
+        .shell
+        .panel_darkness =
+        w.value());
     on_change!(opacity_scale, connect_value_changed, |s, w| s.cfg.shell.panel_opacity =
         w.value());
     {

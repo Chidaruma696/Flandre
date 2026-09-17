@@ -37,6 +37,7 @@ chroma = 0.0                  # minimum colourfulness; 0 keeps the scheme's own
 [shell]
 panel = "black"               # black | colored | transparent
 panel_opacity = 1.0           # 0.0 see-through .. 1.0 solid (black and colored)
+panel_darkness = 0.0          # colored only: 0.0 Adwaita headerbar tone .. 1.0 near black (same curve as `headerbar`)
 
 [terminals]
 opacity = 1.0                 # background opacity for Ptyxis, Console and Black Box
