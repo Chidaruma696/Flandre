@@ -4,7 +4,8 @@
 //! tables in adwaita-material-you by Francesco Caracciolo and was reworked so
 //! the tint level can be dialled up.
 
-use crate::config::{AccentRole, Icons, Tint, Variant};
+use crate::config::{AccentRole, Icons, Terminals, Tint, Variant};
+use crate::schemes;
 use anyhow::{Context, Result, anyhow};
 use material_colors::{
     blend,
@@ -144,8 +145,108 @@ fn harmonize(design: &str, source: Argb) -> Argb {
     blend::harmonize(Argb::from_str(design).expect("static colour"), source)
 }
 
+/// Background, foreground, cursor and the 16 ANSI colours for `term.scheme`.
+///
+/// `Flandre` is built from the Material palettes alone. A classic scheme starts from its
+/// published colours (`schemes.rs`; a light variant is synthesised when it has none) and each
+/// colour is then moved towards the wallpaper by `term.blend`: saturated ones are harmonised
+/// (hue shifted towards the source), greys, background and foreground take the wallpaper hue.
+fn terminal_colors(
+    theme: &Theme,
+    dark: bool,
+    source: Argb,
+    primary: Argb,
+    term: &Terminals,
+    n: &impl Fn(f64) -> Argb,
+    wash_amount: f64,
+) -> (Argb, Argb, Argb, [Argb; 16]) {
+    let blend_amount = term.blend.clamp(0.0, 1.0);
+    let (bg_tone, fg_tone) = if dark { (4.0, 92.0) } else { (99.0, 12.0) };
+    let bg_wash = if dark { 0.3 } else { 0.2 } * wash_amount;
+
+    let Some(scheme) = schemes::builtin(term.scheme) else {
+        // Flandre: hues from the scheme, chroma from the wallpaper, tones fixed per mode.
+        let pp = &theme.palettes.primary;
+        let tp = &theme.palettes.tertiary;
+        let ep = &theme.palettes.error;
+        let chroma = pp.chroma().clamp(36.0, 64.0);
+        let fixed = |hue: f64, t: f64| -> Argb { blend::harmonize(Hct::from(hue, chroma, t).into(), source) };
+        let (lo, hi) = if dark { (65.0, 80.0) } else { (40.0, 52.0) };
+        // Yellow only reads as yellow at high tones; cyan is a fixed hue because Material's
+        // secondary is too grey for a terminal.
+        let (ylo, yhi) = if dark { (78.0, 88.0) } else { (48.0, 58.0) };
+        let (black, bright_black, white, bright_white) = if dark {
+            (20.0, 45.0, 80.0, 96.0)
+        } else {
+            (15.0, 45.0, 80.0, 98.0)
+        };
+        let ansi = [
+            n(black),
+            tone(ep, lo),
+            fixed(145.0, lo),
+            fixed(95.0, ylo),
+            tone(pp, lo),
+            tone(tp, lo),
+            fixed(200.0, lo),
+            n(white),
+            n(bright_black),
+            tone(ep, hi),
+            fixed(145.0, hi),
+            fixed(95.0, yhi),
+            tone(pp, hi),
+            tone(tp, hi),
+            fixed(200.0, hi),
+            n(bright_white),
+        ];
+        return (wash(n(bg_tone), primary, bg_wash), n(fg_tone), primary, ansi);
+    };
+
+    let parse = |s: &str| Argb::from_str(s).expect("static colour");
+    let (bg0, fg0, cursor0, ansi0): (Argb, Argb, Argb, [Argb; 16]) = match (dark, scheme.light.as_ref()) {
+        (true, _) => (
+            parse(scheme.dark.bg),
+            parse(scheme.dark.fg),
+            parse(scheme.dark.cursor),
+            scheme.dark.ansi.map(parse),
+        ),
+        (false, Some(l)) => (parse(l.bg), parse(l.fg), parse(l.cursor), l.ansi.map(parse)),
+        (false, None) => {
+            // No light variant: keep the hues, drop the tones so they read on a light background.
+            let mut ansi = scheme.dark.ansi.map(parse);
+            for (i, c) in ansi.iter_mut().enumerate() {
+                *c = match i {
+                    0 => n(15.0),
+                    7 => n(80.0),
+                    8 => n(45.0),
+                    15 => n(98.0),
+                    _ => {
+                        let h = Hct::new(*c);
+                        Hct::from(h.get_hue(), h.get_chroma().max(30.0), if i < 8 { 40.0 } else { 50.0 }).into()
+                    }
+                };
+            }
+            (n(99.0), n(12.0), n(12.0), ansi)
+        }
+    };
+    if blend_amount <= 0.0 {
+        return (bg0, fg0, cursor0, ansi0);
+    }
+    let grey = |c: Argb, amount: f64| wash(c, primary, amount * blend_amount);
+    let mut ansi = ansi0;
+    for (i, c) in ansi.iter_mut().enumerate() {
+        *c = match i {
+            0 | 7 | 8 | 15 => grey(*c, 0.5),
+            _ => blend::cam16_ucs(*c, blend::harmonize(*c, source), blend_amount),
+        };
+    }
+    let bg = grey(bg0, if dark { 0.6 } else { 0.4 });
+    let fg = grey(fg0, 0.4);
+    let cursor = blend::cam16_ucs(cursor0, primary, blend_amount);
+    (bg, fg, cursor, ansi)
+}
+
 impl Palette {
-    pub fn build(theme: &Theme, dark: bool, tint: Tint, darken: f64) -> Self {
+    pub fn build(theme: &Theme, dark: bool, tint: Tint, darken: f64, term: &Terminals) -> Self {
         let darken = darken.clamp(0.0, 1.0);
         let s = if dark {
             &theme.schemes.dark
@@ -242,55 +343,8 @@ impl Palette {
         let light = [100.0, 96.0, 90.0, 80.0, 64.0].map(n);
         let darks = [50.0, 40.0, 30.0, 20.0, 12.0].map(n);
 
-        // Terminal palette: GNOME's ANSI colours pulled towards the wallpaper, blue = primary,
-        // magenta = tertiary.
-        let (bg, fg) = if dark {
-            (wash(n(4.0), p, 0.3 * wash_amount), n(92.0))
-        } else {
-            (wash(n(99.0), p, 0.2 * wash_amount), n(12.0))
-        };
-        let tp = &theme.palettes.tertiary;
-        let sp = &theme.palettes.secondary;
-        let ansi = if dark {
-            [
-                n(20.0),
-                harmonize("#ed333b", source),
-                harmonize("#2ec27e", source),
-                harmonize("#f5c211", source),
-                tone(pp, 65.0),
-                tone(tp, 65.0),
-                harmonize("#0ab9dc", source),
-                n(80.0),
-                n(45.0),
-                harmonize("#f66151", source),
-                harmonize("#57e389", source),
-                harmonize("#f8e45c", source),
-                tone(pp, 80.0),
-                tone(tp, 80.0),
-                harmonize("#4fd2fd", source),
-                n(96.0),
-            ]
-        } else {
-            [
-                n(15.0),
-                harmonize("#c01c28", source),
-                harmonize("#26a269", source),
-                harmonize("#a2734c", source),
-                tone(pp, 40.0),
-                tone(tp, 40.0),
-                harmonize("#2aa1b3", source),
-                n(80.0),
-                n(45.0),
-                harmonize("#f66151", source),
-                harmonize("#33d17a", source),
-                harmonize("#e9ad0c", source),
-                tone(pp, 55.0),
-                tone(tp, 55.0),
-                harmonize("#33c7de", source),
-                n(98.0),
-            ]
-        };
-        let _ = sp;
+        // Terminal palette: the chosen base scheme, pulled towards the wallpaper.
+        let (bg, fg, cursor, ansi) = terminal_colors(theme, dark, source, p, term, &n, wash_amount);
 
         Self {
             dark,
@@ -352,7 +406,7 @@ impl Palette {
             darks,
             term_bg: bg,
             term_fg: fg,
-            cursor: s.primary,
+            cursor,
             ansi,
             neutral_hue,
             neutral_chroma,

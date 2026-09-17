@@ -31,16 +31,86 @@ pub enum Tint {
     Strong,
 }
 
+/// Base colour scheme for terminals. Everything but `Flandre` is a well-known palette
+/// (`src/schemes.rs`) that is then pulled towards the wallpaper by `terminals.blend`.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, clap::ValueEnum)]
+#[serde(rename_all = "kebab-case")]
+pub enum TermScheme {
+    /// Built entirely from the Material scheme: blue = primary, magenta = tertiary,
+    /// red = error; green, yellow and cyan are fixed hues harmonised with the wallpaper.
+    Flandre,
+    Gnome,
+    Tango,
+    Solarized,
+    Monokai,
+    Gruvbox,
+    Dracula,
+    Nord,
+    Catppuccin,
+    TokyoNight,
+    Everforest,
+    RosePine,
+    Ayu,
+    Kanagawa,
+}
+
+impl TermScheme {
+    pub const ALL: [TermScheme; 14] = [
+        TermScheme::Flandre,
+        TermScheme::Gnome,
+        TermScheme::Tango,
+        TermScheme::Solarized,
+        TermScheme::Monokai,
+        TermScheme::Gruvbox,
+        TermScheme::Dracula,
+        TermScheme::Nord,
+        TermScheme::Catppuccin,
+        TermScheme::TokyoNight,
+        TermScheme::Everforest,
+        TermScheme::RosePine,
+        TermScheme::Ayu,
+        TermScheme::Kanagawa,
+    ];
+
+    pub fn label(self) -> &'static str {
+        match self {
+            TermScheme::Flandre => "Flandre",
+            TermScheme::Gnome => "GNOME",
+            TermScheme::Tango => "Tango",
+            TermScheme::Solarized => "Solarized",
+            TermScheme::Monokai => "Monokai",
+            TermScheme::Gruvbox => "Gruvbox",
+            TermScheme::Dracula => "Dracula",
+            TermScheme::Nord => "Nord",
+            TermScheme::Catppuccin => "Catppuccin",
+            TermScheme::TokyoNight => "Tokyo Night",
+            TermScheme::Everforest => "Everforest",
+            TermScheme::RosePine => "Rosé Pine",
+            TermScheme::Ayu => "Ayu",
+            TermScheme::Kanagawa => "Kanagawa",
+        }
+    }
+}
+
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(default)]
 pub struct Terminals {
     /// Background opacity for Ptyxis, Console and Black Box: 0.0 = see-through, 1.0 = solid.
     pub opacity: f64,
+    /// Base palette for the 16 ANSI colours, foreground and background.
+    pub scheme: TermScheme,
+    /// How far a classic scheme is pulled towards the wallpaper: 0.0 = as published,
+    /// 1.0 = fully harmonised. Ignored by `flandre`, which is already built from it.
+    pub blend: f64,
 }
 
 impl Default for Terminals {
     fn default() -> Self {
-        Self { opacity: 1.0 }
+        Self {
+            opacity: 1.0,
+            scheme: TermScheme::Flandre,
+            blend: 0.5,
+        }
     }
 }
 
@@ -193,7 +263,9 @@ impl Config {
              # variant: tonal-spot | vibrant | expressive | fruit-salad | rainbow | neutral | monochrome | fidelity | content\n\
              # tint: soft | normal | strong    darken: 0.0-1.0\n\
              # icons.family: auto | tela | papirus    icons.accent: primary-container | primary | secondary | tertiary | custom\n\
-             # shell.panel: black | colored | transparent    shell.panel_opacity / terminals.opacity: 0.0-1.0\n\n{}",
+             # shell.panel: black | colored | transparent    shell.panel_opacity / terminals.opacity: 0.0-1.0\n\
+             # terminals.scheme: flandre | gnome | tango | solarized | monokai | gruvbox | dracula | nord | catppuccin |\n\
+             #   tokyo-night | everforest | rose-pine | ayu | kanagawa    terminals.blend: 0.0-1.0 (pull towards the wallpaper)\n\n{}",
             toml::to_string_pretty(self)?
         );
         util::write_atomic(&path(), text.as_bytes())

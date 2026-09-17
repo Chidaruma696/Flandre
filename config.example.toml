@@ -36,3 +36,6 @@ panel_opacity = 1.0           # 0.0 see-through .. 1.0 solid (black and colored)
 
 [terminals]
 opacity = 1.0                 # background opacity for Ptyxis, Console and Black Box
+scheme = "flandre"            # flandre | gnome | tango | solarized | monokai | gruvbox | dracula | nord
+                              # | catppuccin | tokyo-night | everforest | rose-pine | ayu | kanagawa
+blend = 0.5                   # classic schemes only: 0.0 as published .. 1.0 fully pulled to the wallpaper

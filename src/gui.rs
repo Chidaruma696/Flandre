@@ -2,7 +2,7 @@
 
 use crate::apply;
 use crate::colors::{self, Palette};
-use crate::config::{AccentRole, Config, IconFamily, PanelStyle, Tint, Variant};
+use crate::config::{AccentRole, Config, IconFamily, PanelStyle, TermScheme, Tint, Variant};
 use crate::targets::icons as icons_target;
 use crate::util;
 use adw::prelude::*;
@@ -40,7 +40,13 @@ struct State {
 impl State {
     fn rebuild(&mut self) {
         self.theme = colors::build_theme(self.source, self.cfg.variant);
-        self.palette = Palette::build(&self.theme, self.preview_dark, self.cfg.tint, self.cfg.darken);
+        self.palette = Palette::build(
+            &self.theme,
+            self.preview_dark,
+            self.cfg.tint,
+            self.cfg.darken,
+            &self.cfg.terminals,
+        );
     }
 }
 
@@ -328,7 +334,7 @@ fn build_ui(app: &adw::Application) {
         .and_then(|w| colors::source_from_image(w).ok())
         .unwrap_or_else(|| Argb::new(255, 0x67, 0x50, 0xa4));
     let theme = colors::build_theme(source, cfg.variant);
-    let palette = Palette::build(&theme, preview_dark, cfg.tint, cfg.darken);
+    let palette = Palette::build(&theme, preview_dark, cfg.tint, cfg.darken, &cfg.terminals);
     let st: Shared = Rc::new(RefCell::new(State {
         cfg,
         theme,
@@ -587,6 +593,35 @@ fn build_ui(app: &adw::Application) {
         0.05,
         st.borrow().cfg.terminals.opacity,
     );
+    let schemes_all = TermScheme::ALL;
+    let scheme_labels: Vec<&str> = schemes_all.iter().map(|s| s.label()).collect();
+    let cur_scheme = schemes_all
+        .iter()
+        .position(|v| *v == st.borrow().cfg.terminals.scheme)
+        .unwrap_or(0) as u32;
+    let scheme_row = combo(
+        t("Colour scheme", "Esquema de colores"),
+        t(
+            "Flandre is built from the wallpaper scheme; the rest are classic palettes pulled towards it",
+            "Flandre sale del esquema del fondo; el resto son paletas clásicas acercadas a él",
+        ),
+        &scheme_labels,
+        cur_scheme,
+    );
+    let (blend_row, blend_scale) = scale_row(
+        t("Blend with wallpaper", "Fusión con el fondo"),
+        t(
+            "Classic schemes only: 0 = as published, 1 = fully harmonised",
+            "Solo esquemas clásicos: 0 = tal cual, 1 = del todo armonizado",
+        ),
+        0.0,
+        1.0,
+        0.05,
+        st.borrow().cfg.terminals.blend,
+    );
+    blend_row.set_sensitive(st.borrow().cfg.terminals.scheme != TermScheme::Flandre);
+    g_term.add(&scheme_row);
+    g_term.add(&blend_row);
     g_term.add(&term_opacity_row);
     page.add(&g_term);
 
@@ -689,6 +724,14 @@ fn build_ui(app: &adw::Application) {
     on_change!(panel_row, connect_selected_notify, |s, w| s.cfg.shell.panel =
         panels[w.selected() as usize]);
     on_change!(opacity_scale, connect_value_changed, |s, w| s.cfg.shell.panel_opacity =
+        w.value());
+    {
+        let blend_row = blend_row.clone();
+        scheme_row.connect_selected_notify(move |w| blend_row.set_sensitive(w.selected() != 0));
+    }
+    on_change!(scheme_row, connect_selected_notify, |s, w| s.cfg.terminals.scheme =
+        schemes_all[w.selected() as usize]);
+    on_change!(blend_scale, connect_value_changed, |s, w| s.cfg.terminals.blend =
         w.value());
     on_change!(term_opacity_scale, connect_value_changed, |s, w| s
         .cfg

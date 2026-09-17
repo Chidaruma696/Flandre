@@ -14,7 +14,8 @@ here, but the ideas are theirs.
 | [pywal](https://github.com/dylanaraps/pywal) | Dylan Araps | MIT | Broadcasting OSC colour sequences to every open pty and caching them for shell rc files. |
 | [adw-gtk3](https://github.com/lassekongo83/adw-gtk3) | lassekongo83 | LGPL-2.1 | The GTK 3 theme that reads the same named colours. |
 | [GNOME Shell](https://gitlab.gnome.org/GNOME/gnome-shell) | GNOME | GPL-2.0-or-later | The stock stylesheet is read from the installed GResource and recoloured locally; nothing is shipped. |
-| [Ptyxis](https://gitlab.gnome.org/chergert/ptyxis) | Christian Hergert | GPL-3.0 | Palette file format. |
+| [Ptyxis](https://gitlab.gnome.org/chergert/ptyxis) | Christian Hergert | GPL-3.0 | Palette file format, and the colour values of the classic schemes in `src/schemes.rs` were taken from the palettes Ptyxis ships (several of them via [Gogh](https://github.com/Gogh-Co/Gogh), MIT). |
+| Solarized (Ethan Schoonover), Monokai (Wimer Hazenberg), Gruvbox (Pavel Pertsev), Dracula (Zeno Rocha), Nord (Sven Greb), Catppuccin, Tokyo Night (enkia / folke), Everforest (sainnhe), Rosé Pine, Ayu (dempfi), Kanagawa (rebelot), Tango (Tango Desktop Project) | their authors | MIT and similar | The terminal colour schemes offered as bases; Flandre only shifts them towards the wallpaper. |
 | [GNOME Console](https://gitlab.gnome.org/GNOME/console) | GNOME | GPL-3.0 | Livery GVariant format. |
 | [Black Box](https://gitlab.gnome.org/raggesilver/blackbox) | Paulo Queiroz | GPL-3.0 | Scheme JSON format. |
 | [gtk-rs](https://gtk-rs.org/) (`gio`, `glib`, `gtk4`, `libadwaita`) | gtk-rs team | MIT | GSettings, GResource, the main loop and the settings window. |

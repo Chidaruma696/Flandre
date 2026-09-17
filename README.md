@@ -24,6 +24,7 @@ dependencies beyond GLib, and it reaches further:
 | **Ptyxis** | A native `.palette` (light + dark, titlebar included) selected in every profile. Host package and Flatpak. |
 | **GNOME Console** | A custom *livery* written to `org.gnome.Console custom-liveries` and selected (Console 49+). |
 | **Black Box** | `Flandre Dark` / `Flandre Light` JSON schemes plus `theme-dark` / `theme-light` / `pretty`. Host package and Flatpak. |
+| **Terminal colours** | `Flandre` (default) builds the 16 ANSI colours from the scheme itself: blue = primary, magenta = tertiary, red = error, green, yellow and cyan harmonised with the wallpaper. Or pick a classic base (GNOME, Tango, Solarized, Monokai, Gruvbox, Dracula, Nord, Catppuccin, Tokyo Night, Everforest, Rosé Pine, Ayu, Kanagawa) and a *blend* slider decides how far it is pulled towards the wallpaper. Light and dark variants; synthesised for schemes that only have a dark one. |
 | **Terminal opacity** | One slider for Ptyxis (`opacity` in every profile), Console (livery transparency) and Black Box (`opacity`). |
 | **Open terminals** | OSC 4/10/11/12 sequences broadcast to every pty, cached in `~/.cache/flandre/sequences` for shell rc files, with `colors.json` / `colors.sh` for your own scripts. |
 | **Flatpaks** | `flatpak override --user` so sandboxed apps can read the GTK CSS, icons and themes. |

@@ -4,6 +4,7 @@ mod apply;
 mod colors;
 mod config;
 mod gui;
+mod schemes;
 mod setup;
 mod targets;
 mod util;
@@ -158,7 +159,7 @@ fn main() -> Result<()> {
             let w = apply::current_wallpaper(dark)?;
             let source = colors::source_from_image(&w)?;
             let theme = colors::build_theme(source, cfg.variant);
-            let p = colors::Palette::build(&theme, dark, cfg.tint, cfg.darken);
+            let p = colors::Palette::build(&theme, dark, cfg.tint, cfg.darken, &cfg.terminals);
             if json {
                 print!("{}", targets::osc::colors_json(&p));
             } else {
@@ -172,7 +173,7 @@ fn main() -> Result<()> {
             let w = apply::current_wallpaper(dark)?;
             let source = colors::source_from_image(&w)?;
             let theme = colors::build_theme(source, cfg.variant);
-            let p = colors::Palette::build(&theme, dark, cfg.tint, cfg.darken);
+            let p = colors::Palette::build(&theme, dark, cfg.tint, cfg.darken, &cfg.terminals);
             print!("{}", targets::osc::sequences(&p));
         }
     }

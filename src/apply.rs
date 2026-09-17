@@ -125,8 +125,8 @@ pub fn run(cfg: &Config, opts: &Options) -> Result<Report> {
     ));
 
     let theme = colors::build_theme(source, cfg.variant);
-    let pal_dark = Palette::build(&theme, true, cfg.tint, cfg.darken);
-    let pal_light = Palette::build(&theme, false, cfg.tint, cfg.darken);
+    let pal_dark = Palette::build(&theme, true, cfg.tint, cfg.darken, &cfg.terminals);
+    let pal_light = Palette::build(&theme, false, cfg.tint, cfg.darken, &cfg.terminals);
     let p = if dark { &pal_dark } else { &pal_light };
     lines.push(format!(
         "primary {}  surface {}  headerbar {}  terminal {} on {}",
