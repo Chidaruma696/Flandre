@@ -35,13 +35,15 @@ Tres niveles de tinte (`soft`, `normal`, `strong`) controlan cuánto entra el ma
 los grises y cuánto acento baña headerbars, sidebars y popovers. `strong` es el predeterminado y
 está pensado para ser agresivo; mantiene oscuras las superficies oscuras porque tiñe el matiz a
 tono constante, y el control `darken` lleva los tonos oscuros desde los de Material hasta casi negro.
+Un control aparte, `headerbar`, oscurece solo la decoración de ventana, desde la de Adwaita (algo
+más clara que la ventana) hasta casi negra.
 
 ## Ventana de ajustes
 
 `flandre settings` (también "Flandre" en la parrilla de apps tras el `setup`) es una ventana
 libadwaita con previsualización en vivo: un escritorio de mentira (barra superior, headerbar,
 sidebar, card, popover, botones), la paleta, las carpetas recoloreadas y los colores de terminal.
-Edita esquema, tinte, oscuridad, familia de iconos (Tela / Papirus), qué color del esquema pinta
+Edita esquema, tinte, oscuridad, oscuridad de la barra de título, familia de iconos (Tela / Papirus), qué color del esquema pinta
 los iconos (o un tono a medida), el estilo de la barra superior (negra, de color, transparente) y
 los destinos, y aplica con un botón.
 

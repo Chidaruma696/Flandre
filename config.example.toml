@@ -9,6 +9,10 @@ tint = "strong"
 # Dark mode only: 0.0 = Material's own tones, 1.0 = near black
 darken = 0.5
 
+# Window decoration (headerbar): 0.0 = Adwaita's, a notch lighter than the window; 1.0 = near black
+# in dark mode, a dim grey in light mode
+headerbar = 0.0
+
 # Shell command run after every apply. FLANDRE_PRIMARY and FLANDRE_MODE are in its environment.
 extra_command = ""
 

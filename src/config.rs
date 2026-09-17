@@ -218,6 +218,9 @@ pub struct Config {
     pub tint: Tint,
     /// 0.0 = Material's own tones, 1.0 = as dark as it goes (dark mode only).
     pub darken: f64,
+    /// Window decoration (headerbar) darkness: 0.0 = Adwaita's, a notch lighter than the window,
+    /// 1.0 = near black in dark mode, a dim grey in light mode.
+    pub headerbar: f64,
     /// Extra shell command run after every apply (like Material You's `extra-command`).
     pub extra_command: String,
     pub notify: bool,
@@ -233,6 +236,7 @@ impl Default for Config {
             variant: Variant::FruitSalad,
             tint: Tint::Strong,
             darken: 0.5,
+            headerbar: 0.0,
             extra_command: String::new(),
             notify: true,
             targets: Targets::default(),
@@ -261,7 +265,7 @@ impl Config {
         let text = format!(
             "# Flandre configuration. Every key is optional; `flandre settings` edits this file.\n\
              # variant: tonal-spot | vibrant | expressive | fruit-salad | rainbow | neutral | monochrome | fidelity | content\n\
-             # tint: soft | normal | strong    darken: 0.0-1.0\n\
+             # tint: soft | normal | strong    darken / headerbar: 0.0-1.0\n\
              # icons.family: auto | tela | papirus    icons.accent: primary-container | primary | secondary | tertiary | custom\n\
              # shell.panel: black | colored | transparent    shell.panel_opacity / terminals.opacity: 0.0-1.0\n\
              # terminals.scheme: flandre | gnome | tango | solarized | monokai | gruvbox | dracula | nord | catppuccin |\n\

@@ -32,13 +32,15 @@ dependencies beyond GLib, and it reaches further:
 Three tint levels (`soft`, `normal`, `strong`) control how far the wallpaper hue goes into the
 neutral greys and how much of the accent washes headerbars, sidebars and popovers. `strong` is the
 default and is meant to be aggressive; it keeps dark surfaces dark by tinting hue at constant tone,
-and a `darken` slider takes the dark tones from Material's down to near black.
+and a `darken` slider takes the dark tones from Material's down to near black. A separate
+`headerbar` slider darkens the window decoration on its own, from Adwaita's (a notch lighter than
+the window) to near black.
 
 ## Settings window
 
 `flandre settings` (also "Flandre" in the app grid after `setup`) is a libadwaita window with a live
 preview: a mock desktop (top bar, headerbar, sidebar, card, popover, buttons), the palette, the
-recoloured folder icons and the terminal colours. It edits scheme, tint, darkness, icon family
+recoloured folder icons and the terminal colours. It edits scheme, tint, darkness, title bar darkness, icon family
 (Tela / Papirus), which scheme colour paints the icons (or a custom tone), the top bar style
 (black, coloured, transparent) and the targets, then applies with one button.
 

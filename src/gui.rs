@@ -40,13 +40,7 @@ struct State {
 impl State {
     fn rebuild(&mut self) {
         self.theme = colors::build_theme(self.source, self.cfg.variant);
-        self.palette = Palette::build(
-            &self.theme,
-            self.preview_dark,
-            self.cfg.tint,
-            self.cfg.darken,
-            &self.cfg.terminals,
-        );
+        self.palette = Palette::build(&self.theme, self.preview_dark, &self.cfg);
     }
 }
 
@@ -334,7 +328,7 @@ fn build_ui(app: &adw::Application) {
         .and_then(|w| colors::source_from_image(w).ok())
         .unwrap_or_else(|| Argb::new(255, 0x67, 0x50, 0xa4));
     let theme = colors::build_theme(source, cfg.variant);
-    let palette = Palette::build(&theme, preview_dark, cfg.tint, cfg.darken, &cfg.terminals);
+    let palette = Palette::build(&theme, preview_dark, &cfg);
     let st: Shared = Rc::new(RefCell::new(State {
         cfg,
         theme,
@@ -455,6 +449,17 @@ fn build_ui(app: &adw::Application) {
         0.05,
         st.borrow().cfg.darken,
     );
+    let (headerbar_row, headerbar_scale) = scale_row(
+        t("Title bar", "Barra de título"),
+        t(
+            "0 = Adwaita (lighter than the window), 1 = near black",
+            "0 = Adwaita (más clara que la ventana), 1 = casi negra",
+        ),
+        0.0,
+        1.0,
+        0.05,
+        st.borrow().cfg.headerbar,
+    );
     let preview_light = adw::SwitchRow::builder()
         .title(t("Preview light mode", "Previsualizar modo claro"))
         .active(!preview_dark)
@@ -462,6 +467,7 @@ fn build_ui(app: &adw::Application) {
     g_scheme.add(&variant_row);
     g_scheme.add(&tint_row);
     g_scheme.add(&darken_row);
+    g_scheme.add(&headerbar_row);
     g_scheme.add(&preview_light);
     page.add(&g_scheme);
 
@@ -708,6 +714,8 @@ fn build_ui(app: &adw::Application) {
     on_change!(tint_row, connect_selected_notify, |s, w| s.cfg.tint =
         tints[w.selected() as usize]);
     on_change!(darken_scale, connect_value_changed, |s, w| s.cfg.darken = w.value());
+    on_change!(headerbar_scale, connect_value_changed, |s, w| s.cfg.headerbar =
+        w.value());
     on_change!(preview_light, connect_active_notify, |s, w| s.preview_dark =
         !w.is_active());
     on_change!(family_row, connect_selected_notify, |s, w| s.cfg.icons.family =

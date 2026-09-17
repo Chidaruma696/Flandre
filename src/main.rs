@@ -159,7 +159,7 @@ fn main() -> Result<()> {
             let w = apply::current_wallpaper(dark)?;
             let source = colors::source_from_image(&w)?;
             let theme = colors::build_theme(source, cfg.variant);
-            let p = colors::Palette::build(&theme, dark, cfg.tint, cfg.darken, &cfg.terminals);
+            let p = colors::Palette::build(&theme, dark, &cfg);
             if json {
                 print!("{}", targets::osc::colors_json(&p));
             } else {
@@ -173,7 +173,7 @@ fn main() -> Result<()> {
             let w = apply::current_wallpaper(dark)?;
             let source = colors::source_from_image(&w)?;
             let theme = colors::build_theme(source, cfg.variant);
-            let p = colors::Palette::build(&theme, dark, cfg.tint, cfg.darken, &cfg.terminals);
+            let p = colors::Palette::build(&theme, dark, &cfg);
             print!("{}", targets::osc::sequences(&p));
         }
     }
