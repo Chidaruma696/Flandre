@@ -8,6 +8,10 @@ regenerated from the wallpaper every time it (or the light/dark preference) chan
 
 ![Rust](https://img.shields.io/badge/Rust-2024-orange) ![GNOME](https://img.shields.io/badge/GNOME-47%E2%80%9350-blue) ![Licence](https://img.shields.io/badge/licence-MIT-green)
 
+<p align="center">
+  <img src="docs/desktop.jpg" width="900" alt="GNOME desktop recoloured by Flandre: Shell, Ptyxis and Files following the wallpaper">
+</p>
+
 ## Why
 
 The usual way to get Material You on GNOME is a GNOME extension with a Python backend that clones
@@ -46,6 +50,10 @@ which colour of the scheme highlights them (checked toggles, today, selected ite
 
 *Quick settings and calendar with `shell.menus` at 0.78 and a custom highlight tone.*
 
+<p align="center">
+  <img src="docs/settings-shell.png" width="820" alt="The GNOME Shell group of the settings window: top bar, menu background, highlight colour">
+</p>
+
 ## Settings window
 
 `flandre settings` (also "Flandre" in the app grid after `setup`) is a libadwaita window with a live
@@ -56,7 +64,7 @@ recoloured folder icons and the terminal colours. It edits scheme, tint, darknes
 targets, then applies with one button.
 
 <p align="center">
-  <img src="docs/settings.png" width="820" alt="Flandre settings window, GNOME Shell group">
+  <img src="docs/settings.png" width="820" alt="Flandre settings window with the live preview">
 </p>
 
 ## Install

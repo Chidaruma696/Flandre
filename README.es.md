@@ -9,6 +9,10 @@ preferencia claro/oscuro).
 
 ![Rust](https://img.shields.io/badge/Rust-2024-orange) ![GNOME](https://img.shields.io/badge/GNOME-47%E2%80%9350-blue) ![Licencia](https://img.shields.io/badge/licencia-MIT-green)
 
+<p align="center">
+  <img src="docs/desktop.jpg" width="900" alt="Escritorio GNOME recoloreado por Flandre: Shell, Ptyxis y Archivos siguiendo el fondo">
+</p>
+
 ## Por qué
 
 La forma habitual de tener Material You en GNOME es una extensión con un backend en Python que
@@ -49,6 +53,10 @@ elementos seleccionados).
 
 *Ajustes rápidos y calendario con `shell.menus` a 0.78 y un tono de resalte a medida.*
 
+<p align="center">
+  <img src="docs/settings-shell.png" width="820" alt="Grupo GNOME Shell de la ventana de ajustes: barra superior, fondo de los menús, color de resalte">
+</p>
+
 ## Ventana de ajustes
 
 `flandre settings` (también "Flandre" en la parrilla de apps tras el `setup`) es una ventana
@@ -59,7 +67,7 @@ los iconos (o un tono a medida), el estilo de la barra superior (negra, de color
 el fondo y el color de resalte de los menús de la Shell, y los destinos, y aplica con un botón.
 
 <p align="center">
-  <img src="docs/settings.png" width="820" alt="Ventana de ajustes de Flandre, grupo GNOME Shell">
+  <img src="docs/settings.png" width="820" alt="Ventana de ajustes de Flandre con la previsualización en vivo">
 </p>
 
 ## Instalación
