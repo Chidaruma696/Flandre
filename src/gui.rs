@@ -887,10 +887,30 @@ fn build_ui(app: &adw::Application) {
 
     window.present();
 
-    // Debug aid: FLANDRE_SNAPSHOT=/path.png saves a picture of the window two seconds after it opens.
+    // Debug aid: FLANDRE_SNAPSHOT=/path.png saves a picture of the window two seconds after it
+    // opens; FLANDRE_SNAPSHOT_SCROLL=0.0-1.0 scrolls the settings page first.
     if let Ok(path) = std::env::var("FLANDRE_SNAPSHOT") {
         let paintable = gtk::WidgetPaintable::new(Some(&overlay));
         let window = window.clone();
+        let scroll: Option<f64> = std::env::var("FLANDRE_SNAPSHOT_SCROLL")
+            .ok()
+            .and_then(|v| v.parse().ok());
+        let page = page.clone();
+        glib::timeout_add_local_once(std::time::Duration::from_millis(1000), move || {
+            let Some(fraction) = scroll else { return };
+            // The page's scrolled window is a private child; find it by walking down.
+            let mut w: Option<gtk::Widget> = page.first_child();
+            while let Some(cur) = w {
+                if let Some(sw) = cur.downcast_ref::<gtk::ScrolledWindow>() {
+                    let adj = sw.vadjustment();
+                    adj.set_value(
+                        adj.lower() + (adj.upper() - adj.page_size() - adj.lower()) * fraction.clamp(0.0, 1.0),
+                    );
+                    break;
+                }
+                w = cur.first_child();
+            }
+        });
         glib::timeout_add_local_once(std::time::Duration::from_millis(2000), move || {
             if let Some(image) = paintable
                 .current_image()

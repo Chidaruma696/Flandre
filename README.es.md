@@ -42,6 +42,13 @@ misma idea, manteniendo separados los escalones de hover/seleccionado en vez de 
 negro, y `shell.accent` elige qué color del esquema los resalta (botones activos, el día de hoy,
 elementos seleccionados).
 
+<p align="center">
+  <img src="docs/quick-settings.png" width="360" alt="Ajustes rápidos recoloreados por Flandre">
+  <img src="docs/calendar.png" width="560" alt="Calendario y notificaciones recoloreados por Flandre">
+</p>
+
+*Ajustes rápidos y calendario con `shell.menus` a 0.78 y un tono de resalte a medida.*
+
 ## Ventana de ajustes
 
 `flandre settings` (también "Flandre" en la parrilla de apps tras el `setup`) es una ventana
@@ -49,7 +56,11 @@ libadwaita con previsualización en vivo: un escritorio de mentira (barra superi
 sidebar, card, popover, botones), la paleta, las carpetas recoloreadas y los colores de terminal.
 Edita esquema, tinte, oscuridad, oscuridad de la barra de título, familia de iconos (Tela / Papirus), qué color del esquema pinta
 los iconos (o un tono a medida), el estilo de la barra superior (negra, de color, transparente) y
-los destinos, y aplica con un botón.
+el fondo y el color de resalte de los menús de la Shell, y los destinos, y aplica con un botón.
+
+<p align="center">
+  <img src="docs/settings.png" width="820" alt="Ventana de ajustes de Flandre, grupo GNOME Shell">
+</p>
 
 ## Instalación
 

@@ -39,13 +39,25 @@ their own pair of controls: `shell.menus` darkens their background on the same i
 hover/selected steps apart instead of crushing everything into black, and `shell.accent` picks
 which colour of the scheme highlights them (checked toggles, today, selected items).
 
+<p align="center">
+  <img src="docs/quick-settings.png" width="360" alt="Quick settings recoloured by Flandre">
+  <img src="docs/calendar.png" width="560" alt="Calendar and notifications recoloured by Flandre">
+</p>
+
+*Quick settings and calendar with `shell.menus` at 0.78 and a custom highlight tone.*
+
 ## Settings window
 
 `flandre settings` (also "Flandre" in the app grid after `setup`) is a libadwaita window with a live
 preview: a mock desktop (top bar, headerbar, sidebar, card, popover, buttons), the palette, the
 recoloured folder icons and the terminal colours. It edits scheme, tint, darkness, title bar darkness, icon family
 (Tela / Papirus), which scheme colour paints the icons (or a custom tone), the top bar style
-(black, coloured, transparent) and the targets, then applies with one button.
+(black, coloured, transparent), the menu background and highlight colour of the Shell, and the
+targets, then applies with one button.
+
+<p align="center">
+  <img src="docs/settings.png" width="820" alt="Flandre settings window, GNOME Shell group">
+</p>
 
 ## Install
 
