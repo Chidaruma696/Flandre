@@ -150,7 +150,21 @@ pub struct Palette {
     // Neutral hue/chroma used to recolour arbitrary greys (Shell CSS)
     pub neutral_hue: f64,
     pub neutral_chroma: f64,
+    // GNOME Shell menus (`shell.menus` / `shell.accent`)
+    pub shell_menus: f64,
+    /// Tone of the stock popover background, the anchor of the `shell.menus` curve.
+    pub shell_anchor: f64,
+    pub shell_accent: Argb,
+    pub shell_on_accent: Argb,
+    /// Stock popover background (`.popup-menu-content`) after recolouring, for the preview.
+    pub shell_menu_bg: Argb,
+    /// Stock quick-toggle background after recolouring, for the preview.
+    pub shell_item_bg: Argb,
 }
+
+/// Stock backgrounds of the Shell's popovers and quick toggles (gnome-shell-{dark,light}.css).
+const SHELL_POPOVER_BG: (&str, &str) = ("#36363a", "#fafafb");
+const SHELL_ITEM_BG: (&str, &str) = ("#47474c", "#ffffff");
 
 fn tone(p: &TonalPalette, t: f64) -> Argb {
     Hct::from(p.hue(), p.chroma(), t).into()
@@ -384,7 +398,8 @@ impl Palette {
         // Terminal palette: the chosen base scheme, pulled towards the wallpaper.
         let (bg, fg, cursor, ansi) = terminal_colors(theme, dark, source, p, term, &n, wash_amount);
 
-        Self {
+        let stock = |pair: (&str, &str)| Argb::from_str(if dark { pair.0 } else { pair.1 }).expect("static colour");
+        let mut me = Self {
             dark,
             source,
             tint,
@@ -448,22 +463,93 @@ impl Palette {
             ansi,
             neutral_hue,
             neutral_chroma,
-        }
+            shell_menus: cfg.shell.menus.clamp(0.0, 1.0),
+            shell_anchor: Hct::new(stock(SHELL_POPOVER_BG)).get_tone(),
+            shell_accent: s.primary,
+            shell_on_accent: s.on_primary,
+            shell_menu_bg: stock(SHELL_POPOVER_BG),
+            shell_item_bg: stock(SHELL_ITEM_BG),
+        };
+        me.shell_accent = me.role_color(cfg.shell.accent, cfg.shell.accent_tone);
+        me.shell_on_accent = me.on_role(cfg.shell.accent, me.shell_accent);
+        me.shell_menu_bg = me.recolor_shell(stock(SHELL_POPOVER_BG));
+        me.shell_item_bg = me.recolor_shell(stock(SHELL_ITEM_BG));
+        me
     }
 
-    /// Icon colour: the scheme role the user picked, applied as is (like Material You did), with an
-    /// optional chroma floor so pale schemes still give coloured folders.
-    pub fn icon_accent(&self, icons: &Icons) -> Argb {
-        let base = match icons.accent {
+    /// One of the scheme's colours by role, or the primary hue at `tone` for `Custom`.
+    fn role_color(&self, role: AccentRole, tone: f64) -> Argb {
+        match role {
             AccentRole::PrimaryContainer => self.primary_container,
             AccentRole::Primary => self.primary,
             AccentRole::Secondary => self.secondary,
             AccentRole::Tertiary => self.tertiary,
             AccentRole::Custom => {
                 let h = Hct::new(self.primary);
-                Hct::from(h.get_hue(), h.get_chroma(), icons.tone.clamp(5.0, 95.0)).into()
+                Hct::from(h.get_hue(), h.get_chroma(), tone.clamp(5.0, 95.0)).into()
             }
+        }
+    }
+
+    /// Text/icon colour that reads on `color` for that role.
+    fn on_role(&self, role: AccentRole, color: Argb) -> Argb {
+        match role {
+            AccentRole::PrimaryContainer => self.on_primary_container,
+            AccentRole::Primary => self.on_primary,
+            AccentRole::Secondary => self.on_secondary,
+            AccentRole::Tertiary => self.on_tertiary,
+            AccentRole::Custom => {
+                let t = if Hct::new(color).get_tone() > 50.0 { 10.0 } else { 98.0 };
+                Hct::from(self.neutral_hue, self.neutral_chroma, t).into()
+            }
+        }
+    }
+
+    /// Tone curve for the Shell's greys (`shell.menus`). Anchored on the stock popover
+    /// background, which slides from Adwaita's tone down to near black (dark) or a dim grey
+    /// (light) while tone 60 stays put, so hover/selected steps keep their distance instead of
+    /// all collapsing into black.
+    pub fn shell_tone(&self, t: f64) -> f64 {
+        let m = self.shell_menus;
+        const PIVOT: f64 = 60.0;
+        let a = self.shell_anchor;
+        if m <= 0.0 {
+            return t;
+        }
+        let mapped = if self.dark {
+            if t >= PIVOT {
+                return t;
+            }
+            let target = a - (a - 2.0) * m;
+            target + (t - a) * (PIVOT - target) / (PIVOT - a)
+        } else {
+            if t <= PIVOT {
+                return t;
+            }
+            let target = a - (a - 74.0) * m;
+            target - (a - t) * (target - PIVOT) / (a - PIVOT)
         };
+        mapped.clamp(0.0, 100.0)
+    }
+
+    /// Moves any colour along the `shell.menus` curve, keeping hue and chroma.
+    pub fn shell_grey(&self, c: Argb) -> Argb {
+        if self.shell_menus <= 0.0 {
+            return c;
+        }
+        let h = Hct::new(c);
+        Hct::from(h.get_hue(), h.get_chroma(), self.shell_tone(h.get_tone())).into()
+    }
+
+    /// `recolor` for the Shell stylesheet: greys also follow the `shell.menus` curve.
+    pub fn recolor_shell(&self, c: Argb) -> Argb {
+        self.recolor_with(c, true)
+    }
+
+    /// Icon colour: the scheme role the user picked, applied as is (like Material You did), with an
+    /// optional chroma floor so pale schemes still give coloured folders.
+    pub fn icon_accent(&self, icons: &Icons) -> Argb {
+        let base = self.role_color(icons.accent, icons.tone);
         if icons.chroma > 0.0 {
             let h = Hct::new(base);
             if h.get_chroma() < icons.chroma {
@@ -475,7 +561,7 @@ impl Palette {
 
     /// Recolours an arbitrary colour the way the tint level asks for: greys take the neutral hue,
     /// saturated colours are harmonised towards the wallpaper. Pure black/white are kept.
-    pub fn recolor(&self, c: Argb) -> Argb {
+    fn recolor_with(&self, c: Argb, shell: bool) -> Argb {
         let h = Hct::new(c);
         let t = h.get_tone();
         if t >= 99.5 || t <= 0.5 {
@@ -487,6 +573,7 @@ impl Palette {
             } else {
                 self.neutral_chroma
             };
+            let t = if shell { self.shell_tone(t) } else { t };
             // Dark mode backgrounds (tones under 60) go a notch darker than stock.
             let t = if self.dark && t < 60.0 && self.tint != Tint::Soft {
                 t * (1.0 - 0.3 * self.darken)
@@ -529,5 +616,40 @@ mod tests {
         assert_eq!(a, b);
         assert!(source_from_image(&garbage).is_err());
         let _ = std::fs::remove_dir_all(&dir);
+    }
+
+    /// `shell.menus` takes the stock popover background to near black while keeping the
+    /// hover/selected step above it, and `shell.accent` drives the highlight colour.
+    #[test]
+    fn shell_menus_and_accent() {
+        let theme = build_theme(Argb::new(255, 0x1b, 0x2d, 0x43), Variant::Fidelity);
+        let mut cfg = Config::default();
+        let zero = Palette::build(&theme, true, &cfg);
+        assert_eq!(zero.shell_accent, zero.primary);
+        cfg.shell.menus = 1.0;
+        cfg.shell.accent = AccentRole::Tertiary;
+        let full = Palette::build(&theme, true, &cfg);
+        let tone = |c: Argb| Hct::new(c).get_tone();
+        assert!(tone(full.shell_menu_bg) < 4.0, "{:?}", full.shell_menu_bg);
+        assert!(tone(full.shell_menu_bg) < tone(zero.shell_menu_bg));
+        assert!(
+            tone(full.shell_item_bg) - tone(full.shell_menu_bg) > 6.0,
+            "steps kept apart"
+        );
+        assert_eq!(full.shell_accent, full.tertiary);
+        assert_eq!(full.shell_on_accent, full.on_tertiary);
+        // Tone 60 and above is untouched; pure black stays black.
+        assert_eq!(full.shell_tone(60.0), 60.0);
+        assert_eq!(full.recolor_shell(Argb::new(255, 0, 0, 0)), Argb::new(255, 0, 0, 0));
+        // Light mode: a dim grey, never darker than tone 60.
+        let light = Palette::build(&theme, false, &cfg);
+        let t = tone(light.shell_menu_bg);
+        assert!((70.0..80.0).contains(&t), "{t}");
+        // Custom tone with readable text on top.
+        cfg.shell.accent = AccentRole::Custom;
+        cfg.shell.accent_tone = 30.0;
+        let custom = Palette::build(&theme, true, &cfg);
+        assert!((tone(custom.shell_accent) - 30.0).abs() < 1.5);
+        assert!(tone(custom.shell_on_accent) > 90.0);
     }
 }

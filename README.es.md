@@ -36,7 +36,11 @@ los grises y cuánto acento baña headerbars, sidebars y popovers. `strong` es e
 está pensado para ser agresivo; mantiene oscuras las superficies oscuras porque tiñe el matiz a
 tono constante, y el control `darken` lleva los tonos oscuros desde los de Material hasta casi negro.
 Un control aparte, `headerbar`, oscurece solo la decoración de ventana, desde la de Adwaita (algo
-más clara que la ventana) hasta casi negra.
+más clara que la ventana) hasta casi negra. Los menús de la Shell (calendario, ajustes rápidos,
+popovers, diálogos) tienen su propio par de controles: `shell.menus` oscurece su fondo con la
+misma idea, manteniendo separados los escalones de hover/seleccionado en vez de aplastarlo todo en
+negro, y `shell.accent` elige qué color del esquema los resalta (botones activos, el día de hoy,
+elementos seleccionados).
 
 ## Ventana de ajustes
 

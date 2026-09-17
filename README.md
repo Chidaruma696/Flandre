@@ -34,7 +34,10 @@ neutral greys and how much of the accent washes headerbars, sidebars and popover
 default and is meant to be aggressive; it keeps dark surfaces dark by tinting hue at constant tone,
 and a `darken` slider takes the dark tones from Material's down to near black. A separate
 `headerbar` slider darkens the window decoration on its own, from Adwaita's (a notch lighter than
-the window) to near black.
+the window) to near black. The Shell's menus (calendar, quick settings, popovers, dialogs) have
+their own pair of controls: `shell.menus` darkens their background on the same idea, keeping the
+hover/selected steps apart instead of crushing everything into black, and `shell.accent` picks
+which colour of the scheme highlights them (checked toggles, today, selected items).
 
 ## Settings window
 

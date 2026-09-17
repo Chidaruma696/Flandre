@@ -155,13 +155,26 @@ fn draw_desktop(cr: &cairo::Context, w: f64, h: f64, st: &State) {
     rgb(cr, p.on_surface);
     cr.rectangle(x + 200.0, y + wh - 22.0, 30.0, 4.0);
     let _ = cr.fill();
-    // popover
-    rgb(cr, p.popover_bg);
-    rounded(cr, x + ww - 120.0, y + 112.0, 100.0, 60.0, 8.0);
+    // Shell menu (quick settings): a checked toggle, a plain one, two rows
+    let (mx, my) = (x + ww - 120.0, y + 112.0);
+    rgb(cr, p.shell_menu_bg);
+    rounded(cr, mx, my, 100.0, 60.0, 8.0);
     let _ = cr.fill();
-    for i in 0..3 {
+    rgb(cr, p.shell_accent);
+    rounded(cr, mx + 8.0, my + 8.0, 40.0, 16.0, 8.0);
+    let _ = cr.fill();
+    rgb(cr, p.shell_on_accent);
+    cr.arc(mx + 18.0, my + 16.0, 3.5, 0.0, 6.3);
+    let _ = cr.fill();
+    rgb(cr, p.shell_item_bg);
+    rounded(cr, mx + 52.0, my + 8.0, 40.0, 16.0, 8.0);
+    let _ = cr.fill();
+    rgb(cr, p.on_surface_variant);
+    cr.arc(mx + 62.0, my + 16.0, 3.5, 0.0, 6.3);
+    let _ = cr.fill();
+    for i in 0..2 {
         rgb(cr, p.on_surface_variant);
-        cr.rectangle(x + ww - 110.0, y + 124.0 + i as f64 * 16.0, 60.0, 4.0);
+        cr.rectangle(mx + 10.0, my + 34.0 + i as f64 * 12.0, 60.0 - i as f64 * 15.0, 4.0);
         let _ = cr.fill();
     }
 }
@@ -269,6 +282,7 @@ struct Widgets {
     icons_box: gtk::Box,
     accent_label: gtk::Label,
     tone_row: adw::ActionRow,
+    shell_tone_row: adw::ActionRow,
 }
 
 fn refresh(st: &Shared, w: &Widgets) {
@@ -296,6 +310,7 @@ fn refresh(st: &Shared, w: &Widgets) {
         colors::hex(s.palette.primary)
     ));
     w.tone_row.set_sensitive(s.cfg.icons.accent == AccentRole::Custom);
+    w.shell_tone_row.set_sensitive(s.cfg.shell.accent == AccentRole::Custom);
 }
 
 fn combo(title: &str, subtitle: &str, items: &[&str], selected: u32) -> adw::ComboRow {
@@ -581,8 +596,52 @@ fn build_ui(app: &adw::Application) {
         st.borrow().cfg.shell.panel_opacity,
     );
     opacity_row.set_sensitive(st.borrow().cfg.shell.panel != PanelStyle::Transparent);
+    let (menus_row, menus_scale) = scale_row(
+        t("Menu background", "Fondo de los menús"),
+        t(
+            "Calendar, quick settings, popovers: 0 = Adwaita greys, 1 = near black",
+            "Calendario, ajustes rápidos, menús: 0 = grises de Adwaita, 1 = casi negro",
+        ),
+        0.0,
+        1.0,
+        0.05,
+        st.borrow().cfg.shell.menus,
+    );
+    let cur_shell_role = roles
+        .iter()
+        .position(|v| *v == st.borrow().cfg.shell.accent)
+        .unwrap_or(1) as u32;
+    let shell_role_row = combo(
+        t("Highlight colour", "Color de resalte"),
+        t(
+            "Checked toggles, today, selected items",
+            "Botones activos, el día de hoy, elementos seleccionados",
+        ),
+        &[
+            t("Primary container (deep)", "Primary container (profundo)"),
+            t("Primary (the accent)", "Primary (el acento)"),
+            t("Secondary", "Secondary"),
+            t("Tertiary", "Tertiary"),
+            t("Custom tone", "Tono a medida"),
+        ],
+        cur_shell_role,
+    );
+    let (shell_tone_row, shell_tone_scale) = scale_row(
+        t("Highlight tone", "Tono del resalte"),
+        t(
+            "0 = black, 100 = white (custom only)",
+            "0 = negro, 100 = blanco (solo a medida)",
+        ),
+        5.0,
+        95.0,
+        1.0,
+        st.borrow().cfg.shell.accent_tone,
+    );
     g_shell.add(&panel_row);
     g_shell.add(&opacity_row);
+    g_shell.add(&menus_row);
+    g_shell.add(&shell_role_row);
+    g_shell.add(&shell_tone_row);
     page.add(&g_shell);
 
     let g_term = adw::PreferencesGroup::builder()
@@ -691,6 +750,7 @@ fn build_ui(app: &adw::Application) {
         icons_box,
         accent_label,
         tone_row,
+        shell_tone_row,
     });
     refresh(&st, &widgets);
 
@@ -732,6 +792,14 @@ fn build_ui(app: &adw::Application) {
     on_change!(panel_row, connect_selected_notify, |s, w| s.cfg.shell.panel =
         panels[w.selected() as usize]);
     on_change!(opacity_scale, connect_value_changed, |s, w| s.cfg.shell.panel_opacity =
+        w.value());
+    on_change!(menus_scale, connect_value_changed, |s, w| s.cfg.shell.menus = w.value());
+    on_change!(shell_role_row, connect_selected_notify, |s, w| s.cfg.shell.accent =
+        roles[w.selected() as usize]);
+    on_change!(shell_tone_scale, connect_value_changed, |s, w| s
+        .cfg
+        .shell
+        .accent_tone =
         w.value());
     {
         let blend_row = blend_row.clone();

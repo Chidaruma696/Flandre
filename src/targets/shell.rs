@@ -57,7 +57,7 @@ pub fn recolor_css(css: &str, p: &Palette) -> String {
                 && boundary
                 && let Ok(c) = crate::colors::parse_hex(&css[i..j])
             {
-                out.push_str(&hex(p.recolor(c)));
+                out.push_str(&hex(p.recolor_shell(c)));
                 i = j;
                 continue;
             }
@@ -74,7 +74,7 @@ pub fn recolor_css(css: &str, p: &Palette) -> String {
             if parts.len() >= 3 {
                 let comp = |s: &str| s.parse::<f64>().ok().map(|v| v.round().clamp(0.0, 255.0) as u8);
                 if let (Some(r), Some(g), Some(b)) = (comp(parts[0]), comp(parts[1]), comp(parts[2])) {
-                    let c = p.recolor(Argb::new(255, r, g, b));
+                    let c = p.recolor_shell(Argb::new(255, r, g, b));
                     if parts.len() == 4 {
                         out.push_str(&format!("rgba({}, {}, {}, {})", c.red, c.green, c.blue, parts[3]));
                     } else {
@@ -90,9 +90,9 @@ pub fn recolor_css(css: &str, p: &Palette) -> String {
         out.push(ch);
         i += ch.len_utf8();
     }
-    // Accent keywords last, so the primary is not harmonised a second time.
-    out.replace("-st-accent-fg-color", &hex(p.on_primary))
-        .replace("-st-accent-color", &hex(p.primary))
+    // Accent keywords last, so the highlight colour is not harmonised a second time.
+    out.replace("-st-accent-fg-color", &hex(p.shell_on_accent))
+        .replace("-st-accent-color", &hex(p.shell_accent))
 }
 
 pub fn extra_css(p: &Palette, shell: &Shell) -> String {
@@ -124,12 +124,12 @@ StScrollBar StButton#vhandle, StScrollBar StButton#hhandle {{ background-color: 
 .search-entry:focus {{ border-color: {primary}; }}\n\
 .osd-window {{ background-color: {popover}; }}\n\
 .login-dialog, .unlock-dialog {{ background-color: {surface}; }}\n",
-            sel = hex_alpha(p.primary, if p.dark { 0.32 } else { 0.24 }),
-            primary = hex(p.primary),
-            on_primary = hex(p.on_primary),
+            sel = hex_alpha(p.shell_accent, if p.dark { 0.32 } else { 0.24 }),
+            primary = hex(p.shell_accent),
+            on_primary = hex(p.shell_on_accent),
             outline = hex(p.outline),
-            popover = hex(p.popover_bg),
-            surface = hex(p.surface),
+            popover = hex(p.shell_grey(p.popover_bg)),
+            surface = hex(p.shell_grey(p.surface)),
         )
 }
 

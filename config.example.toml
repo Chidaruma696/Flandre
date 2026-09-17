@@ -37,6 +37,9 @@ chroma = 0.0                  # minimum colourfulness; 0 keeps the scheme's own
 [shell]
 panel = "black"               # black | colored | transparent
 panel_opacity = 1.0           # 0.0 see-through .. 1.0 solid (black and colored)
+menus = 0.0                   # menu/popover background: 0.0 Adwaita greys .. 1.0 near black (dim grey in light mode)
+accent = "primary"            # highlight (checked toggles, today, selections): primary-container | primary | secondary | tertiary | custom
+accent_tone = 60.0            # tone for "custom" (0 black .. 100 white)
 
 [terminals]
 opacity = 1.0                 # background opacity for Ptyxis, Console and Black Box

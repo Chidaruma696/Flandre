@@ -200,6 +200,14 @@ pub struct Shell {
     pub panel: PanelStyle,
     /// Opacity of the top bar colour (black or coloured), 0.0 = see-through, 1.0 = solid.
     pub panel_opacity: f64,
+    /// Background of the Shell's menus (calendar, quick settings, popovers, dialogs, dash):
+    /// 0.0 = Adwaita's greys, 1.0 = near black in dark mode / a dim grey in light mode.
+    pub menus: f64,
+    /// Which colour of the scheme highlights the Shell: checked quick toggles, today in the
+    /// calendar, selected items, slider fills.
+    pub accent: AccentRole,
+    /// Tone (0 = black, 100 = white) used when `accent = "custom"`.
+    pub accent_tone: f64,
 }
 
 impl Default for Shell {
@@ -207,6 +215,9 @@ impl Default for Shell {
         Self {
             panel: PanelStyle::Black,
             panel_opacity: 1.0,
+            menus: 0.0,
+            accent: AccentRole::Primary,
+            accent_tone: 60.0,
         }
     }
 }
@@ -268,6 +279,7 @@ impl Config {
              # tint: soft | normal | strong    darken / headerbar: 0.0-1.0\n\
              # icons.family: auto | tela | papirus    icons.accent: primary-container | primary | secondary | tertiary | custom\n\
              # shell.panel: black | colored | transparent    shell.panel_opacity / terminals.opacity: 0.0-1.0\n\
+             # shell.menus: 0.0-1.0 (menu background darkness)    shell.accent: same roles as icons.accent + shell.accent_tone\n\
              # terminals.scheme: flandre | gnome | tango | solarized | monokai | gruvbox | dracula | nord | catppuccin |\n\
              #   tokyo-night | everforest | rose-pine | ayu | kanagawa    terminals.blend: 0.0-1.0 (pull towards the wallpaper)\n\n{}",
             toml::to_string_pretty(self)?
