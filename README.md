@@ -34,9 +34,7 @@ neutral greys and how much of the accent washes headerbars, sidebars and popover
 default and is meant to be aggressive; it keeps dark surfaces dark by tinting hue at constant tone,
 and a `darken` slider takes the dark tones from Material's down to near black. A separate
 `headerbar` slider darkens the window decoration on its own, from Adwaita's (a notch lighter than
-the window) to near black. The coloured top bar of the Shell has its own `shell.panel_darkness`
-slider on the same curve, so equal values give a bar that matches the title bars, and a solid bar
-no longer depends on whatever the wallpaper shows behind it.
+the window) to near black.
 
 ## Settings window
 

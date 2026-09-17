@@ -109,7 +109,7 @@ pub fn extra_css(p: &Palette, shell: &Shell) -> String {
     let panel = match shell.panel {
         PanelStyle::Black if alpha >= 1.0 => String::new(),
         PanelStyle::Black => bar(stock_bar),
-        PanelStyle::Colored => bar(Some(p.panel_bg)),
+        PanelStyle::Colored => bar(Some(p.surface_container)),
         PanelStyle::Transparent => "#panel { background-color: transparent; }\n".to_string(),
     };
     panel

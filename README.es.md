@@ -36,9 +36,7 @@ los grises y cuánto acento baña headerbars, sidebars y popovers. `strong` es e
 está pensado para ser agresivo; mantiene oscuras las superficies oscuras porque tiñe el matiz a
 tono constante, y el control `darken` lleva los tonos oscuros desde los de Material hasta casi negro.
 Un control aparte, `headerbar`, oscurece solo la decoración de ventana, desde la de Adwaita (algo
-más clara que la ventana) hasta casi negra. La barra superior de color de la Shell tiene su propio
-control `shell.panel_darkness` con la misma curva: con el mismo valor, la barra coincide con las
-barras de título, y una barra sólida deja de depender de lo que el fondo tenga detrás.
+más clara que la ventana) hasta casi negra.
 
 ## Ventana de ajustes
 

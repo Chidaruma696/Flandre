@@ -122,8 +122,6 @@ pub struct Palette {
     pub window_bg: Argb,
     pub view_bg: Argb,
     pub headerbar_bg: Argb,
-    /// The coloured top bar of the Shell, on the headerbar curve (`shell.panel_darkness`).
-    pub panel_bg: Argb,
     pub sidebar_bg: Argb,
     pub secondary_sidebar_bg: Argb,
     pub card_bg: Argb,
@@ -279,7 +277,6 @@ impl Palette {
         let term = &cfg.terminals;
         let darken = cfg.darken.clamp(0.0, 1.0);
         let headerbar = cfg.headerbar.clamp(0.0, 1.0);
-        let panel_darkness = cfg.shell.panel_darkness.clamp(0.0, 1.0);
         let s = if dark {
             &theme.schemes.dark
         } else {
@@ -355,19 +352,15 @@ impl Palette {
         let window_bg = wash(low, p, 0.35 * wash_amount);
         let view_bg = wash(surface, p, 0.25 * wash_amount);
         // Window decoration: `headerbar` slides the titlebar tone from Adwaita's (a notch above the
-        // window) down to near black in dark mode, or a dim grey in light mode. The Shell's
-        // coloured top bar rides the same curve (`shell.panel_darkness`), so equal values match.
-        let slide = |amount: f64| {
-            if amount > 0.0 {
-                let from = Hct::new(high).get_tone();
-                let to = if dark { 2.0 } else { 74.0 };
-                n(from - (from - to) * amount)
-            } else {
-                high
-            }
+        // window) down to near black in dark mode, or a dim grey in light mode.
+        let headerbar_base = if headerbar > 0.0 {
+            let from = Hct::new(high).get_tone();
+            let to = if dark { 2.0 } else { 74.0 };
+            n(from - (from - to) * headerbar)
+        } else {
+            high
         };
-        let headerbar_bg = wash(slide(headerbar), p, 0.6 * wash_amount);
-        let panel_bg = wash(slide(panel_darkness), p, 0.6 * wash_amount);
+        let headerbar_bg = wash(headerbar_base, p, 0.6 * wash_amount);
         let sidebar_bg = wash(container, p, 0.5 * wash_amount);
         let secondary_sidebar_bg = wash(low, p, 0.35 * wash_amount);
         let card_bg = wash(high, p, 0.4 * wash_amount);
@@ -430,7 +423,6 @@ impl Palette {
             window_bg,
             view_bg,
             headerbar_bg,
-            panel_bg,
             sidebar_bg,
             secondary_sidebar_bg,
             card_bg,
@@ -537,31 +529,5 @@ mod tests {
         assert_eq!(a, b);
         assert!(source_from_image(&garbage).is_err());
         let _ = std::fs::remove_dir_all(&dir);
-    }
-
-    /// The coloured top bar rides the headerbar curve: equal sliders give equal colours, and
-    /// full darkness is near black in dark mode regardless of the wallpaper.
-    #[test]
-    fn panel_darkness_follows_the_headerbar_curve() {
-        let theme = build_theme(Argb::new(255, 0x1b, 0x2d, 0x43), Variant::Fidelity);
-        let mut cfg = Config {
-            headerbar: 0.68,
-            ..Config::default()
-        };
-        cfg.shell.panel_darkness = 0.68;
-        let p = Palette::build(&theme, true, &cfg);
-        assert_eq!(p.panel_bg, p.headerbar_bg);
-        assert_eq!(
-            Palette::build(&theme, false, &cfg).panel_bg,
-            Palette::build(&theme, false, &cfg).headerbar_bg
-        );
-
-        cfg.shell.panel_darkness = 0.0;
-        let zero = Palette::build(&theme, true, &cfg);
-        assert_eq!(zero.panel_bg, wash(zero.surface_container_high, zero.primary, 0.6));
-        cfg.shell.panel_darkness = 1.0;
-        let full = Palette::build(&theme, true, &cfg);
-        assert!(Hct::new(full.panel_bg).get_tone() < 4.0, "{:?}", full.panel_bg);
-        assert!(Hct::new(zero.panel_bg).get_tone() > Hct::new(full.panel_bg).get_tone());
     }
 }

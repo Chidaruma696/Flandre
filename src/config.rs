@@ -200,9 +200,6 @@ pub struct Shell {
     pub panel: PanelStyle,
     /// Opacity of the top bar colour (black or coloured), 0.0 = see-through, 1.0 = solid.
     pub panel_opacity: f64,
-    /// Darkness of the coloured top bar, on the same curve as `headerbar`: 0.0 = Adwaita's
-    /// headerbar tone, 1.0 = near black. Equal values give a bar that matches the title bars.
-    pub panel_darkness: f64,
 }
 
 impl Default for Shell {
@@ -210,7 +207,6 @@ impl Default for Shell {
         Self {
             panel: PanelStyle::Black,
             panel_opacity: 1.0,
-            panel_darkness: 0.0,
         }
     }
 }
@@ -271,7 +267,7 @@ impl Config {
              # variant: tonal-spot | vibrant | expressive | fruit-salad | rainbow | neutral | monochrome | fidelity | content\n\
              # tint: soft | normal | strong    darken / headerbar: 0.0-1.0\n\
              # icons.family: auto | tela | papirus    icons.accent: primary-container | primary | secondary | tertiary | custom\n\
-             # shell.panel: black | colored | transparent    shell.panel_opacity / shell.panel_darkness / terminals.opacity: 0.0-1.0\n\
+             # shell.panel: black | colored | transparent    shell.panel_opacity / terminals.opacity: 0.0-1.0\n\
              # terminals.scheme: flandre | gnome | tango | solarized | monokai | gruvbox | dracula | nord | catppuccin |\n\
              #   tokyo-night | everforest | rose-pine | ayu | kanagawa    terminals.blend: 0.0-1.0 (pull towards the wallpaper)\n\n{}",
             toml::to_string_pretty(self)?
