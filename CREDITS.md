@@ -11,6 +11,7 @@ here, but the ideas are theirs.
 | [Tela icon theme](https://github.com/vinceliuice/Tela-icon-theme) and [Tela-circle](https://github.com/vinceliuice/Tela-circle-icon-theme) | Vince Liuice | GPL-3.0 | The icons themselves (recoloured at runtime on the user's machine, never redistributed) and the `install.sh` hex-colour substitution that `src/targets/icons.rs` reimplements. |
 | [material-color-utilities](https://github.com/material-foundation/material-color-utilities) | Google | Apache-2.0 | The HCT colour space, scheme variants (Tonal Spot, Vibrant, Expressive, Fruit Salad, ...) and harmonisation. |
 | [material-colors](https://crates.io/crates/material-colors) | Aiving | MIT / Apache-2.0 | Rust port of the above, used as a library. |
+| [jxl-oxide](https://crates.io/crates/jxl-oxide) | Wonwoo Choi | MIT / Apache-2.0 | Pure-Rust JPEG XL decoder, so GNOME's stock `.jxl` wallpapers work. |
 | [pywal](https://github.com/dylanaraps/pywal) | Dylan Araps | MIT | Broadcasting OSC colour sequences to every open pty and caching them for shell rc files. |
 | [adw-gtk3](https://github.com/lassekongo83/adw-gtk3) | lassekongo83 | LGPL-2.1 | The GTK 3 theme that reads the same named colours. |
 | [GNOME Shell](https://gitlab.gnome.org/GNOME/gnome-shell) | GNOME | GPL-2.0-or-later | The stock stylesheet is read from the installed GResource and recoloured locally; nothing is shipped. |

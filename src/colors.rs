@@ -12,7 +12,7 @@ use material_colors::{
     color::Argb,
     dynamic_color::Variant as MVariant,
     hct::Hct,
-    image::{FilterType, ImageReader},
+    image::{FilterType, Image, ImageReader},
     palette::TonalPalette,
     theme::{Theme, ThemeBuilder},
 };
@@ -43,9 +43,35 @@ fn mvariant(v: Variant) -> MVariant {
 
 /// Picks the dominant, theme-worthy colour of an image (quantised at 128x128 like Material does).
 pub fn source_from_image(path: &Path) -> Result<Argb> {
-    let mut img = ImageReader::open(path).with_context(|| format!("reading {}", path.display()))?;
+    let rgba = decode_wallpaper(path).with_context(|| format!("reading {}", path.display()))?;
+    let mut img = Image::new(rgba);
     img.resize(128, 128, FilterType::Lanczos3);
     Ok(ImageReader::extract_color(&img))
+}
+
+/// Decodes a wallpaper ourselves instead of through `material_colors::ImageReader::open`, which
+/// panics on anything the `image` crate cannot read. GNOME ships its stock backgrounds as JPEG XL
+/// since 45, so those go through jxl-oxide.
+fn decode_wallpaper(path: &Path) -> Result<image::RgbaImage> {
+    let is_jxl = path.extension().is_some_and(|e| e.eq_ignore_ascii_case("jxl"));
+    let decoded = if is_jxl {
+        decode_jxl(path)
+    } else {
+        match image::ImageReader::open(path)?.with_guessed_format()?.decode() {
+            Ok(img) => Ok(img),
+            // Unknown format, or a JXL hiding behind a .jpg extension (the `image` crate then
+            // trusts the extension and fails inside the JPEG decoder): try jxl-oxide before
+            // giving up, and report the original error if that fails too.
+            Err(e) => decode_jxl(path).map_err(|_| e.into()),
+        }
+    }?;
+    Ok(decoded.into_rgba8())
+}
+
+fn decode_jxl(path: &Path) -> Result<image::DynamicImage> {
+    let file = std::io::BufReader::new(std::fs::File::open(path)?);
+    let decoder = jxl_oxide::integration::JxlDecoder::new(file)?;
+    Ok(image::DynamicImage::from_decoder(decoder)?)
 }
 
 pub fn build_theme(source: Argb, variant: Variant) -> Theme {
@@ -476,4 +502,32 @@ impl Palette {
 
 pub fn rgb_tuple(c: Argb) -> (f64, f64, f64) {
     (c.red as f64 / 255.0, c.green as f64 / 255.0, c.blue as f64 / 255.0)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn decodes_gnome_stock_jxl_wallpapers() {
+        let stock = Path::new("/usr/share/backgrounds/gnome/adwaita-d.jxl");
+        if !stock.is_file() {
+            eprintln!("skipped: no stock JXL wallpaper on this machine");
+            return;
+        }
+        let dir = std::env::temp_dir().join(format!("flandre-test-{}", std::process::id()));
+        std::fs::create_dir_all(&dir).unwrap();
+        // Real JXL, JXL hiding behind a .jpg extension, and garbage: the first two must decode,
+        // the last must fail with an error instead of aborting the process.
+        let renamed = dir.join("renamed.jpg");
+        std::fs::copy(stock, &renamed).unwrap();
+        let garbage = dir.join("garbage.png");
+        std::fs::write(&garbage, b"not an image").unwrap();
+
+        let a = source_from_image(stock).expect("stock jxl");
+        let b = source_from_image(&renamed).expect("jxl renamed to .jpg");
+        assert_eq!(a, b);
+        assert!(source_from_image(&garbage).is_err());
+        let _ = std::fs::remove_dir_all(&dir);
+    }
 }
