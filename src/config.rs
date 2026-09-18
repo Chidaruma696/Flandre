@@ -295,3 +295,46 @@ impl Config {
         Ok(true)
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn empty_toml_is_the_default_and_every_key_is_optional() {
+        let empty: Config = toml::from_str("").unwrap();
+        let default = Config::default();
+        assert_eq!(toml::to_string(&empty).unwrap(), toml::to_string(&default).unwrap());
+        let partial: Config = toml::from_str("variant = \"vibrant\"\n[terminals]\nscheme = \"tokyo-night\"\nblend = 0.4\n").unwrap();
+        assert_eq!(partial.variant, Variant::Vibrant);
+        assert_eq!(partial.terminals.scheme, TermScheme::TokyoNight);
+        assert!((partial.terminals.blend - 0.4).abs() < 1e-9);
+        assert_eq!(partial.tint, default.tint, "untouched keys keep their default");
+    }
+
+    #[test]
+    fn example_config_parses_and_round_trips() {
+        let example = include_str!("../config.example.toml");
+        let cfg: Config = toml::from_str(example).expect("config.example.toml parses");
+        let text = toml::to_string_pretty(&cfg).unwrap();
+        let again: Config = toml::from_str(&text).unwrap();
+        assert_eq!(toml::to_string(&cfg).unwrap(), toml::to_string(&again).unwrap());
+    }
+
+    #[test]
+    fn term_schemes_are_listed_once_with_distinct_labels_and_kebab_names() {
+        assert_eq!(TermScheme::ALL.len(), 14);
+        let mut labels: Vec<&str> = TermScheme::ALL.iter().map(|s| s.label()).collect();
+        labels.sort();
+        labels.dedup();
+        assert_eq!(labels.len(), 14, "labels are unique");
+        for s in TermScheme::ALL {
+            let name = toml::to_string(&Terminals { scheme: s, ..Terminals::default() }).unwrap();
+            let back: Terminals = toml::from_str(&name).unwrap();
+            assert_eq!(back.scheme, s, "{s:?} survives a round trip through TOML");
+        }
+        let t: Terminals = toml::from_str("scheme = \"rose-pine\"").unwrap();
+        assert_eq!(t.scheme, TermScheme::RosePine);
+        assert!(toml::from_str::<Terminals>("scheme = \"RosePine\"").is_err(), "names are kebab-case");
+    }
+}

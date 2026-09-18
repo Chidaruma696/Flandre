@@ -142,3 +142,27 @@ pub fn notify(summary: &str, body: &str) {
         &["-a", "Flandre", "-i", "preferences-color-symbolic", summary, body],
     );
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn file_uris_decode_percent_escapes() {
+        assert_eq!(uri_to_path("file:///home/a/Im%C3%A1genes/fondo%20uno.jpg").unwrap(), PathBuf::from("/home/a/Imágenes/fondo uno.jpg"));
+        assert_eq!(uri_to_path("file:///plain.png").unwrap(), PathBuf::from("/plain.png"));
+        // A stray percent that is not an escape is kept as it is, never a crash.
+        assert_eq!(uri_to_path("file:///100%").unwrap(), PathBuf::from("/100%"));
+        assert_eq!(uri_to_path("file:///a%2").unwrap(), PathBuf::from("/a%2"));
+        assert!(uri_to_path("https://example.org/x.jpg").is_none());
+        assert!(uri_to_path("/no/scheme.jpg").is_none());
+    }
+
+    #[test]
+    fn xdg_dirs_fall_back_to_home() {
+        let home = home();
+        assert!(home.is_absolute());
+        assert!(flandre_config_dir().ends_with("flandre"));
+        assert!(flandre_cache_dir().ends_with("flandre"));
+    }
+}

@@ -293,3 +293,34 @@ static KANAGAWA: Scheme = Scheme {
     },
     light: None,
 };
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::config::TermScheme;
+
+    fn valid(c: &str) -> bool {
+        c.len() == 7 && c.starts_with('#') && c[1..].chars().all(|ch| ch.is_ascii_hexdigit())
+    }
+
+    /// Every scheme but Flandre is a complete, well-formed palette in both modes it ships.
+    #[test]
+    fn builtin_schemes_are_complete_hex_palettes() {
+        for s in TermScheme::ALL {
+            match builtin(s) {
+                None => assert_eq!(s, TermScheme::Flandre),
+                Some(scheme) => {
+                    for colors in std::iter::once(&scheme.dark).chain(scheme.light.as_ref()) {
+                        assert!(valid(colors.bg), "{s:?} bg {}", colors.bg);
+                        assert!(valid(colors.fg), "{s:?} fg {}", colors.fg);
+                        assert!(valid(colors.cursor), "{s:?} cursor {}", colors.cursor);
+                        for (i, c) in colors.ansi.iter().enumerate() {
+                            assert!(valid(c), "{s:?} ansi[{i}] {c}");
+                        }
+                        assert_ne!(colors.bg, colors.fg, "{s:?}: background and foreground differ");
+                    }
+                }
+            }
+        }
+    }
+}

@@ -596,6 +596,112 @@ mod tests {
     use super::*;
 
     #[test]
+    fn hex_round_trips_and_rejects_garbage() {
+        let c = Argb::new(255, 0x1b, 0x2d, 0x43);
+        assert_eq!(hex(c), "#1b2d43");
+        assert_eq!(parse_hex(" #1B2D43 ").unwrap(), c);
+        assert!(parse_hex("blue").is_err());
+        assert!(parse_hex("#12").is_err());
+    }
+
+    #[test]
+    fn wash_keeps_tone_and_zero_is_identity() {
+        let base = Argb::new(255, 0x20, 0x20, 0x24);
+        let accent = Argb::new(255, 0xd0, 0x40, 0x30);
+        assert_eq!(wash(base, accent, 0.0), base);
+        let washed = wash(base, accent, 1.0);
+        let t = |c: Argb| Hct::new(c).get_tone();
+        assert!((t(washed) - t(base)).abs() < 1.5, "tone moved: {} -> {}", t(base), t(washed));
+        assert_ne!(washed, base, "a full wash changes the hue");
+    }
+
+    /// Whatever the wallpaper, variant and tint: dark surfaces are dark, light ones light, and
+    /// the text on a role always has room to be read.
+    #[test]
+    fn palettes_are_readable_in_every_mode_variant_and_tint() {
+        let tone = |c: Argb| Hct::new(c).get_tone();
+        let sources = [
+            Argb::new(255, 0x1b, 0x2d, 0x43),
+            Argb::new(255, 0xf0, 0x80, 0x20),
+            Argb::new(255, 0x80, 0x80, 0x80),
+            Argb::new(255, 0x10, 0x90, 0x40),
+        ];
+        let variants = [
+            Variant::TonalSpot, Variant::Vibrant, Variant::Expressive, Variant::FruitSalad, Variant::Rainbow,
+            Variant::Neutral, Variant::Monochrome, Variant::Fidelity, Variant::Content,
+        ];
+        for source in sources {
+            for variant in variants {
+                let theme = build_theme(source, variant);
+                for tint in [Tint::Soft, Tint::Normal, Tint::Strong] {
+                    for dark in [true, false] {
+                        let mut cfg = Config::default();
+                        cfg.tint = tint;
+                        let p = Palette::build(&theme, dark, &cfg);
+                        let what = format!("{source:?} {variant:?} {tint:?} dark={dark}");
+                        if dark {
+                            assert!(tone(p.window_bg) < 30.0, "{what}: window {}", tone(p.window_bg));
+                            assert!(tone(p.term_bg) < 20.0, "{what}: term bg {}", tone(p.term_bg));
+                            assert!(tone(p.on_surface) > 75.0, "{what}");
+                        } else {
+                            assert!(tone(p.window_bg) > 85.0, "{what}: window {}", tone(p.window_bg));
+                            assert!(tone(p.term_bg) > 90.0, "{what}: term bg {}", tone(p.term_bg));
+                            assert!(tone(p.on_surface) < 30.0, "{what}");
+                        }
+                        assert!((tone(p.primary) - tone(p.on_primary)).abs() > 40.0, "{what}: on_primary");
+                        assert!((tone(p.term_bg) - tone(p.term_fg)).abs() > 60.0, "{what}: terminal text");
+                        assert_eq!(p.ansi.len(), 16);
+                    }
+                }
+            }
+        }
+    }
+
+    /// `darken` only pushes dark mode down; `headerbar` only the decoration.
+    #[test]
+    fn darken_and_headerbar_dials() {
+        let tone = |c: Argb| Hct::new(c).get_tone();
+        let theme = build_theme(Argb::new(255, 0x1b, 0x2d, 0x43), Variant::TonalSpot);
+        let base = Palette::build(&theme, true, &Config::default());
+        let mut cfg = Config::default();
+        cfg.darken = 1.0;
+        let dark = Palette::build(&theme, true, &cfg);
+        assert!(tone(dark.window_bg) < tone(base.window_bg), "darken lowers the window");
+        let light = Palette::build(&theme, false, &cfg);
+        let light_base = Palette::build(&theme, false, &Config::default());
+        assert_eq!(hex(light.window_bg), hex(light_base.window_bg), "darken is a dark-mode dial");
+        let mut hb = Config::default();
+        hb.headerbar = 1.0;
+        let h = Palette::build(&theme, true, &hb);
+        assert!(tone(h.headerbar_bg) < tone(base.headerbar_bg));
+        assert_eq!(hex(h.window_bg), hex(base.window_bg), "headerbar leaves the window alone");
+    }
+
+    /// Every built-in terminal scheme yields 16 colours in both modes, and `blend` moves them
+    /// towards the wallpaper without changing which one is the background.
+    #[test]
+    fn terminal_schemes_blend_towards_the_wallpaper() {
+        let source = Argb::new(255, 0xd0, 0x40, 0x30);
+        let theme = build_theme(source, Variant::TonalSpot);
+        for scheme in crate::config::TermScheme::ALL {
+            for dark in [true, false] {
+                let mut none = Config::default();
+                none.terminals.scheme = scheme;
+                none.terminals.blend = 0.0;
+                let mut full = none.clone();
+                full.terminals.blend = 1.0;
+                let a = Palette::build(&theme, dark, &none);
+                let b = Palette::build(&theme, dark, &full);
+                let tone = |c: Argb| Hct::new(c).get_tone();
+                assert!((tone(a.term_bg) - tone(b.term_bg)).abs() < 12.0, "{scheme:?} dark={dark}: blend keeps the background tone");
+                if scheme != crate::config::TermScheme::Flandre {
+                    assert_ne!(a.ansi, b.ansi, "{scheme:?} dark={dark}: blend changes the palette");
+                }
+            }
+        }
+    }
+
+    #[test]
     fn decodes_gnome_stock_jxl_wallpapers() {
         let stock = Path::new("/usr/share/backgrounds/gnome/adwaita-d.jxl");
         if !stock.is_file() {
